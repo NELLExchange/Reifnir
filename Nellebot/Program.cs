@@ -14,7 +14,6 @@ using Nellebot.Data;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
 using Nellebot.Services;
-using Nellebot.Services.HtmlToImage;
 using Nellebot.Services.Loggers;
 using Nellebot.Services.Ordbok;
 using Nellebot.Utils;
@@ -53,7 +52,6 @@ public class Program
 
                     services.AddSingleton<SharedCache>();
                     services.AddSingleton<ILocalizationService, LocalizationService>();
-                    services.AddSingleton<PuppeteerFactory>();
 
                     services.AddSingleton<GoodbyeMessageBuffer>();
 
@@ -144,7 +142,6 @@ public class Program
         services.AddTransient<ScribanTemplateLoader>();
         services.AddTransient<OrdbokModelMapper>();
         services.AddTransient<IOrdbokContentParser, OrdbokContentParser>();
-        services.AddTransient<HtmlToImageService>();
         services.AddTransient<BotSettingsService>();
         services.AddTransient<MessageRefsService>();
         services.AddTransient<UserLogService>();

@@ -18,7 +18,7 @@ public class OrdbokSlashModule : ApplicationCommandModule
     [SlashCommand("bm", "Search Bokmål dictionary")]
     public Task OrdbokSearchBokmal(InteractionContext ctx, [Option("query", "What to search for")] string query)
     {
-        var searchOrdbokRequest = new SearchOrdbokQueryV2(ctx)
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
             Dictionary = OrdbokDictionaryMap.Bokmal,
             Query = query,
@@ -30,7 +30,7 @@ public class OrdbokSlashModule : ApplicationCommandModule
     [SlashCommand("nn", "Search Nynorsk dictionary")]
     public Task OrdbokSearchNynorsk(InteractionContext ctx, [Option("query", "What to search for")] string query)
     {
-        var searchOrdbokRequest = new SearchOrdbokQueryV2(ctx)
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
             Dictionary = OrdbokDictionaryMap.Nynorsk,
             Query = query,
