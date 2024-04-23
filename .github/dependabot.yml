@@ -9,19 +9,9 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     groups:
-        core-packages:
-            patterns: 
-                - "Microsoft*"
-                - "Npgsql.EntityFrameworkCore.PostgreSQL"
-            exclude-patterns:
-                - "Microsoft.NET.Test.Sdk"
-        test-packages:
-            patterns:
-            - "MSTest*"
-            - "Microsoft.NET.Test.Sdk"
-            - "NSubstitute*"
-            - "FluentAssertions"
-        dsharp-packages:
-            patterns:
-            - "DSharpPlus*"
-
+      dsharp-packages:
+        patterns:
+          - "DSharpPlus*"
+      other-packages:
+        patterns:
+          - "*"
