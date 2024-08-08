@@ -37,16 +37,22 @@ public class ModmailCleanupJob : IJob
     {
         try
         {
+            _discordLogger.LogExtendedActivityMessage($"Job started: {Key}");
+
             CancellationToken cancellationToken = context.CancellationToken;
 
             TimeSpan cleanupInterval = TimeSpan.FromHours(_options.ModmailTicketInactiveThresholdInHours);
 
             List<ModmailTicket> expiredTickets = await _modmailTicketRepo.GetOpenExpiredTickets(cleanupInterval);
 
+            _discordLogger.LogExtendedActivityMessage($"Found {expiredTickets.Count} expired modmail tickets.");
+
             foreach (ModmailTicket ticket in expiredTickets)
             {
                 await _mediator.Send(new CloseInactiveModmailTicketCommand(ticket), cancellationToken);
             }
+
+            _discordLogger.LogExtendedActivityMessage($"Job finished: {Key}");
         }
         catch (Exception e)
         {
