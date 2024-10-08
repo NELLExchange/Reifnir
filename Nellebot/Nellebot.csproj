@@ -11,12 +11,12 @@
         <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02359" />
         <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02359" />
         <PackageReference Include="MediatR" Version="12.3.0" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.8" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.8" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.10" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.10" />
         <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
         <PackageReference Include="PuppeteerSharp" Version="10.1.4" />
         <PackageReference Include="Quartz" Version="3.13.0" />
         <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.13.0" />
