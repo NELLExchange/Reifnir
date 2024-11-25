@@ -17,7 +17,7 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
-        <PackageReference Include="PuppeteerSharp" Version="10.1.4" />
+        <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
         <PackageReference Include="Quartz" Version="3.13.1" />
         <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.13.1" />
         <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
