@@ -36,13 +36,11 @@ public class NoWayGateway : IGatewayController
 
     public Task ResumeAttemptedAsync(IGatewayClient client)
     {
-        _discordLogger.LogExtendedActivityMessage("Resume attempted.");
         return Task.CompletedTask;
     }
 
     public Task ReconnectRequestedAsync(IGatewayClient client)
     {
-        _discordLogger.LogExtendedActivityMessage("Reconnect requested.");
         return Task.CompletedTask;
     }
 

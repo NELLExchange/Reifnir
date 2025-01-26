@@ -40,6 +40,20 @@ public static class JobSchedulerProvider
                         j.WithIdentity(ModmailCleanupJob.Key)
                             .WithDescription("Close inactive modmail tickets");
                     });
+
+                config.ScheduleJob<MigrateResourcesJob>(
+                    t =>
+                    {
+                        t.ForJob(MigrateResourcesJob.Key)
+                            .WithSimpleSchedule(s => s.WithRepeatCount(0))
+                            .WithDescription("Fire once?");
+                    },
+                    j =>
+                    {
+                        j.WithIdentity(MigrateResourcesJob.Key)
+                            .WithDescription("Migrate resources to channel");
+                    }
+                );
             });
 
         services.AddQuartzHostedService(
@@ -49,7 +63,11 @@ public static class JobSchedulerProvider
                 opts.WaitForJobsToComplete = true;
 
                 // Give the bot some time to start up before running the jobs
+#if DEBUG
+                opts.StartDelay = TimeSpan.FromSeconds(5);
+#else
                 opts.StartDelay = TimeSpan.FromSeconds(30);
+#endif
             });
 
         return services;
