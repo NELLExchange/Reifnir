@@ -67,7 +67,7 @@ public class MigrateResourcesJob : IJob
         {
             CancellationToken cancellationToken = context.CancellationToken;
 
-            bool isDryRun = context.MergedJobDataMap.GetBoolean("dryRun");
+            context.MergedJobDataMap.TryGetBooleanValue("dryRun", out bool isDryRun);
 
             _discordLogger.LogExtendedActivityMessage($"Running job {Key}{(isDryRun ? " (dry run)" : string.Empty)}");
 
@@ -81,6 +81,10 @@ public class MigrateResourcesJob : IJob
             IReadOnlyList<DiscordForumTag> channelTags = resourcesChannel.AvailableTags;
 
             _discordLogger.LogExtendedActivityMessage("Collecting messages...");
+
+            var successCount = 0;
+            var failureCount = 0;
+            var skippedCount = 0;
 
             // Collect messages
             foreach (ResourceChannel resChannel in SourceResourcesChannelIds)
@@ -106,6 +110,7 @@ public class MigrateResourcesJob : IJob
                         {
                             // Already migrated
                             currentPost.Migrated = true;
+                            skippedCount++;
                             continue;
                         }
 
@@ -167,6 +172,8 @@ public class MigrateResourcesJob : IJob
             _discordLogger.LogExtendedActivityMessage(
                 $"{orderedForumPosts.Count} resource forum posts will be created");
 
+            _discordLogger.LogExtendedActivityMessage($"{skippedCount} will be skipped");
+
             foreach (ForumPost forumPost in orderedForumPosts)
             {
                 try
@@ -203,10 +210,11 @@ public class MigrateResourcesJob : IJob
                     _discordLogger.LogExtendedActivityMessage(sb.ToString().TrimEnd());
 
                     // Gives us some time to follow along and to cancel if something goes wrong
-                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
 
                     if (isDryRun)
                     {
+                        successCount++;
                         continue;
                     }
 
@@ -227,12 +235,18 @@ public class MigrateResourcesJob : IJob
                     await originalMessageForPost.CreateReactionAsync(DiscordEmoji.FromUnicode(EmojiMap.WhiteCheckmark));
 
                     await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+                    successCount++;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    failureCount++;
                     _discordErrorLogger.LogError(ex, $"Failed to post message: {ex.Message}");
                 }
             }
+
+            _discordLogger.LogExtendedActivityMessage($"Successful forum posts: {successCount}");
+            _discordLogger.LogExtendedActivityMessage($"Failed forum posts: {failureCount}");
         }
         catch (Exception ex)
         {
@@ -312,7 +326,7 @@ public class MigrateResourcesJob : IJob
             if (mergedAttachments.Count > 0)
             {
                 sb.AppendLineLF();
-                sb.AppendLineLF("Attachments:");
+                sb.AppendLineLF("Direct links to attachments in original message:");
 
                 foreach (DiscordAttachment attachment in mergedAttachments)
                 {
@@ -370,7 +384,7 @@ public class MigrateResourcesJob : IJob
                 if (messageAttachments.Count > 0)
                 {
                     sb.AppendLine();
-                    sb.AppendLine("Attachments:");
+                    sb.AppendLine("Direct links to attachments in original message:");
                 }
 
                 foreach (DiscordAttachment attachment in messageAttachments)
