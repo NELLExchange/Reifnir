@@ -27,14 +27,25 @@ public class MigrateResourcesJob : IJob
     private const string NynorskTag = "nynorsk";
     private const string DialectsTag = "dialects";
 
+#if DEBUG
     private const ulong ResourcesForumChannelId = 1333043798313537628;
 
     private static readonly ResourceChannel[] SourceResourcesChannelIds =
     [
         new(1333043499200679947, null), // #lang-res
-        new(1333043544553820222, MediaTag), // #media-res
         new(1333048476950466570, NynorskTag), // #nn-res
+        new(1333043544553820222, MediaTag), // #media-res
     ];
+#else
+    private const ulong ResourcesForumChannelId = 1289968921331634231;
+
+    private static readonly ResourceChannel[] SourceResourcesChannelIds =
+    [
+        new(622153554198659122, null), // #lang-res
+        new(799759595513446480, NynorskTag), // #nn-res
+        new(769645524134395904, MediaTag), // #media-res
+    ];
+#endif
 
     private readonly DiscordResolver _discordResolver;
     private readonly DiscordLogger _discordLogger;
