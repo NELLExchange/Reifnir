@@ -83,4 +83,16 @@ public class AdminModule
     {
         return _commandQueue.Writer.WriteAsync(new RunJobCommand(ctx, jobName)).AsTask();
     }
+
+    [Command("dry-run-job")]
+    public Task DryRunJob(CommandContext ctx, string jobName)
+    {
+        return _commandQueue.Writer.WriteAsync(new RunJobCommand(ctx, jobName, true)).AsTask();
+    }
+
+    [Command("cancel-job")]
+    public Task CancelJob(CommandContext ctx, string jobName)
+    {
+        return _commandQueue.Writer.WriteAsync(new CancelJobCommand(ctx, jobName)).AsTask();
+    }
 }

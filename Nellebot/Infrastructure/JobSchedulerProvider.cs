@@ -41,19 +41,13 @@ public static class JobSchedulerProvider
                             .WithDescription("Close inactive modmail tickets");
                     });
 
-                config.ScheduleJob<MigrateResourcesJob>(
-                    t =>
-                    {
-                        t.ForJob(MigrateResourcesJob.Key)
-                            .WithSimpleSchedule(s => s.WithRepeatCount(0))
-                            .WithDescription("Fire once?");
-                    },
+                config.AddJob<MigrateResourcesJob>(
                     j =>
                     {
                         j.WithIdentity(MigrateResourcesJob.Key)
-                            .WithDescription("Migrate resources to channel");
-                    }
-                );
+                            .WithDescription("Migrate resources to channel")
+                            .StoreDurably();
+                    });
             });
 
         services.AddQuartzHostedService(

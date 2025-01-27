@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using Nellebot.Services.Loggers;
@@ -12,9 +13,7 @@ namespace Nellebot.Jobs;
 
 public class MigrateResourcesJob : IJob
 {
-    private readonly DiscordResolver _discordResolver;
-    private readonly IDiscordErrorLogger _discordErrorLogger;
-    public static readonly JobKey Key = new("mig-res", "default");
+    public static readonly JobKey Key = new("migrate-resources", "default");
 
     private const string PostEmojiCode = "\uD83C\uDDF5";
     private const string MergeEmojiCode = "\uD83C\uDDF2";
@@ -28,25 +27,39 @@ public class MigrateResourcesJob : IJob
     private const string NynorskTag = "nynorsk";
     private const string DialectsTag = "dialects";
 
-    public MigrateResourcesJob(DiscordResolver discordResolver, IDiscordErrorLogger discordErrorLogger)
-    {
-        _discordResolver = discordResolver;
-        _discordErrorLogger = discordErrorLogger;
-    }
+    private const ulong ResourcesForumChannelId = 1333043798313537628;
 
-    private static ResourceChannel[] SourceResourcesChannelIds =
-    {
+    private static readonly ResourceChannel[] SourceResourcesChannelIds =
+    [
         new(1333043499200679947, null), // #lang-res
         new(1333043544553820222, MediaTag), // #media-res
         new(1333048476950466570, NynorskTag), // #nn-res
-    };
+    ];
 
-    private const ulong ResourcesForumChannelId = 1333043798313537628;
+    private readonly DiscordResolver _discordResolver;
+    private readonly DiscordLogger _discordLogger;
+    private readonly IDiscordErrorLogger _discordErrorLogger;
+
+    public MigrateResourcesJob(
+        DiscordResolver discordResolver,
+        DiscordLogger discordLogger,
+        IDiscordErrorLogger discordErrorLogger)
+    {
+        _discordResolver = discordResolver;
+        _discordLogger = discordLogger;
+        _discordErrorLogger = discordErrorLogger;
+    }
 
     public async Task Execute(IJobExecutionContext context)
     {
         try
         {
+            CancellationToken cancellationToken = context.CancellationToken;
+
+            bool isDryRun = context.MergedJobDataMap.GetBoolean("dryRun");
+
+            _discordLogger.LogExtendedActivityMessage($"Running job {Key}{(isDryRun ? " (dry run)" : string.Empty)}");
+
             var forumPosts = new List<ForumPost>();
 
             DiscordForumChannel resourcesChannel =
@@ -55,6 +68,8 @@ public class MigrateResourcesJob : IJob
                     $"Could not resolve channel {ResourcesForumChannelId}");
 
             IReadOnlyList<DiscordForumTag> channelTags = resourcesChannel.AvailableTags;
+
+            _discordLogger.LogExtendedActivityMessage("Collecting messages...");
 
             // Collect messages
             foreach (ResourceChannel resChannel in SourceResourcesChannelIds)
@@ -67,7 +82,10 @@ public class MigrateResourcesJob : IJob
 
                 ForumPost? currentPost = null;
 
-                await foreach (DiscordMessage message in discordChannel.GetMessagesAfterAsync(0))
+                await foreach (DiscordMessage message in discordChannel.GetMessagesAfterAsync(
+                                   0,
+                                   short.MaxValue,
+                                   cancellationToken))
                 {
                     if (HasReaction(message, PostEmojiCode))
                     {
@@ -126,16 +144,24 @@ public class MigrateResourcesJob : IJob
                 }
             }
 
+            _discordLogger.LogExtendedActivityMessage("Done collecting messages");
+
             // Post messages in forum channel in chronological order
-            IOrderedEnumerable<ForumPost> orderedForumPosts =
+            List<ForumPost> orderedForumPosts =
                 forumPosts
                     .Where(x => !x.Migrated)
-                    .OrderBy(x => x.ContentMessages.First().Id);
+                    .OrderBy(x => x.FirstContentMessage.Id)
+                    .ToList();
+
+            _discordLogger.LogExtendedActivityMessage(
+                $"{orderedForumPosts.Count} resource forum posts will be created");
 
             foreach (ForumPost forumPost in orderedForumPosts)
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     string title = forumPost.GetTitle();
                     List<string> content = forumPost.GetTextContent();
                     List<DiscordForumTag> tags = forumPost.Tags;
@@ -154,6 +180,25 @@ public class MigrateResourcesJob : IJob
 
                     forumPostBuilder = tags.Aggregate(forumPostBuilder, (current, tag) => current.AddTag(tag));
 
+                    var sb = new StringBuilder();
+                    sb.AppendLineLF(
+                            $"Creating post for message {forumPost.FirstContentMessage.JumpLink}")
+                        .AppendLineLF($"Title: {title}")
+                        .AppendLineLF($"Content length: {content.Count}")
+                        .AppendLineLF($"Tags: {string.Join(", ", tags.Select(x => x.Name))}")
+                        .AppendLineLF($"Comments: {comments.Length}")
+                        .AppendLineLF($"Attached files: {forumPost.AttachmentCount}");
+
+                    _discordLogger.LogExtendedActivityMessage(sb.ToString().TrimEnd());
+
+                    // Gives us some time to follow along and to cancel if something goes wrong
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+
+                    if (isDryRun)
+                    {
+                        continue;
+                    }
+
                     DiscordForumPostStarter post = await resourcesChannel.CreateForumPostAsync(forumPostBuilder);
 
                     foreach (string messagePart in remainingMessageParts)
@@ -166,11 +211,13 @@ public class MigrateResourcesJob : IJob
                         await post.Channel.SendMessageAsync(new DiscordMessageBuilder().WithContent(comment));
                     }
 
-                    DiscordMessage originalMessageForPost = forumPost.ContentMessages.First();
+                    DiscordMessage originalMessageForPost = forumPost.FirstContentMessage;
 
                     await originalMessageForPost.CreateReactionAsync(DiscordEmoji.FromUnicode(EmojiMap.WhiteCheckmark));
+
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _discordErrorLogger.LogError(ex, $"Failed to post message: {ex.Message}");
                 }
@@ -197,13 +244,17 @@ public class MigrateResourcesJob : IJob
             ContentMessages.Add(message);
         }
 
-        public List<DiscordMessage> ContentMessages { get; } = new();
+        private List<DiscordMessage> ContentMessages { get; } = new();
 
-        public List<DiscordMessage> CommentMessages { get; } = new();
+        private List<DiscordMessage> CommentMessages { get; } = new();
 
         public List<DiscordForumTag> Tags { get; } = new();
 
         public bool Migrated { get; set; }
+
+        public DiscordMessage FirstContentMessage => ContentMessages.First();
+
+        public int AttachmentCount => ContentMessages.SelectMany(x => x.Attachments).Count();
 
         public void AddContentMessage(DiscordMessage message)
         {
