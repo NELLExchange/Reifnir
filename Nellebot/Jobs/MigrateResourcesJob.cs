@@ -189,7 +189,9 @@ public class MigrateResourcesJob : IJob
                     List<string> remainingMessageParts = content.Skip(1).ToList();
 
                     DiscordMessageBuilder discordMessageBuilder =
-                        new DiscordMessageBuilder().WithContent(firstMessagePart);
+                        new DiscordMessageBuilder()
+                            .WithContent(firstMessagePart)
+                            .SuppressNotifications();
 
                     ForumPostBuilder forumPostBuilder = new ForumPostBuilder()
                         .WithName(title)
@@ -219,21 +221,32 @@ public class MigrateResourcesJob : IJob
                     }
 
                     DiscordForumPostStarter post = await resourcesChannel.CreateForumPostAsync(forumPostBuilder);
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
 
                     foreach (string messagePart in remainingMessageParts)
                     {
-                        await post.Channel.SendMessageAsync(new DiscordMessageBuilder().WithContent(messagePart));
+                        DiscordMessageBuilder messageBuilder = new DiscordMessageBuilder()
+                            .WithContent(messagePart)
+                            .SuppressNotifications();
+
+                        await post.Channel.SendMessageAsync(messageBuilder);
+                        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
                     }
 
                     foreach (string comment in comments)
                     {
-                        await post.Channel.SendMessageAsync(new DiscordMessageBuilder().WithContent(comment));
+                        DiscordMessageBuilder messageBuilder =
+                            new DiscordMessageBuilder()
+                                .WithContent(comment)
+                                .SuppressNotifications();
+
+                        await post.Channel.SendMessageAsync(messageBuilder);
+                        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
                     }
 
                     DiscordMessage originalMessageForPost = forumPost.FirstContentMessage;
 
                     await originalMessageForPost.CreateReactionAsync(DiscordEmoji.FromUnicode(EmojiMap.WhiteCheckmark));
-
                     await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
 
                     successCount++;
@@ -392,10 +405,9 @@ public class MigrateResourcesJob : IJob
                     sb.AppendLine($"[{attachment.FileName}]({attachment.Url})");
                 }
 
-                DiscordMessage firstMessage = ContentMessages.First();
-                DiscordUser? author = firstMessage.Author;
+                DiscordUser? author = message.Author;
                 string authorMentionOrUsername = author is null ? "Unknown" : author.Mention;
-                var messageLink = firstMessage.JumpLink.ToString();
+                var messageLink = message.JumpLink.ToString();
 
                 sb.AppendLine();
                 sb.AppendLine($"[View original message]({messageLink}) by {authorMentionOrUsername}.");
