@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,15 +52,18 @@ public class MigrateResourcesJob : IJob
     private readonly DiscordResolver _discordResolver;
     private readonly DiscordLogger _discordLogger;
     private readonly IDiscordErrorLogger _discordErrorLogger;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public MigrateResourcesJob(
         DiscordResolver discordResolver,
         DiscordLogger discordLogger,
-        IDiscordErrorLogger discordErrorLogger)
+        IDiscordErrorLogger discordErrorLogger,
+        IHttpClientFactory httpClientFactory)
     {
         _discordResolver = discordResolver;
         _discordLogger = discordLogger;
         _discordErrorLogger = discordErrorLogger;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -184,6 +189,7 @@ public class MigrateResourcesJob : IJob
                     List<string> content = forumPost.GetTextContent();
                     List<DiscordForumTag> tags = forumPost.Tags;
                     string[] comments = forumPost.GetComments();
+                    List<DiscordAttachment> imageAttachments = forumPost.GetImageAttachments();
 
                     string firstMessagePart = content.First();
                     List<string> remainingMessageParts = content.Skip(1).ToList();
@@ -192,6 +198,19 @@ public class MigrateResourcesJob : IJob
                         new DiscordMessageBuilder()
                             .WithContent(firstMessagePart)
                             .SuppressNotifications();
+
+                    if (imageAttachments.Count > 0)
+                    {
+                        using HttpClient client = _httpClientFactory.CreateClient();
+
+                        foreach (DiscordAttachment imageAttachment in imageAttachments)
+                        {
+                            string fileName = imageAttachment.FileName ?? Guid.NewGuid().ToString();
+                            Stream stream = await client.GetStreamAsync(imageAttachment.Url, cancellationToken);
+
+                            discordMessageBuilder.AddFile(fileName, stream);
+                        }
+                    }
 
                     ForumPostBuilder forumPostBuilder = new ForumPostBuilder()
                         .WithName(title)
@@ -204,10 +223,12 @@ public class MigrateResourcesJob : IJob
                     sb.AppendLineLF(
                             $"Creating post for message {forumPost.FirstContentMessage.JumpLink}")
                         .AppendLineLF($"Title: {title}")
-                        .AppendLineLF($"Content length: {content.Count}")
-                        .AppendLineLF($"Tags: {string.Join(", ", tags.Select(x => x.Name))}")
+                        .AppendLineLF($"Content: {content.Sum(x => x.Length)} chars in {content.Count} message(s)")
+                        .AppendLineLF(
+                            $"Tags: {(tags.Count > 0 ? string.Join(", ", tags.Select(x => x.Name)) : "none")}")
                         .AppendLineLF($"Comments: {comments.Length}")
-                        .AppendLineLF($"Attached files: {forumPost.AttachmentCount}");
+                        .AppendLineLF($"Images: {imageAttachments.Count}")
+                        .AppendLineLF($"Non image files: {forumPost.NonImageAttachmentCount}");
 
                     _discordLogger.LogExtendedActivityMessage(sb.ToString().TrimEnd());
 
@@ -292,7 +313,8 @@ public class MigrateResourcesJob : IJob
 
         public DiscordMessage FirstContentMessage => ContentMessages.First();
 
-        public int AttachmentCount => ContentMessages.SelectMany(x => x.Attachments).Count();
+        public int NonImageAttachmentCount => ContentMessages.SelectMany(x => x.Attachments)
+            .Count(x => x.MediaType == null || !x.MediaType.StartsWith("image"));
 
         public void AddContentMessage(DiscordMessage message)
         {
@@ -334,16 +356,19 @@ public class MigrateResourcesJob : IJob
                 sb.AppendLineLF(message.Content);
             }
 
-            List<DiscordAttachment> mergedAttachments = ContentMessages.SelectMany(x => x.Attachments).ToList();
+            List<DiscordAttachment> nonImageAttachments = ContentMessages
+                .SelectMany(x => x.Attachments)
+                .Where(x => x.MediaType == null || !x.MediaType.StartsWith("image"))
+                .ToList();
 
-            if (mergedAttachments.Count > 0)
+            if (nonImageAttachments.Count > 0)
             {
                 sb.AppendLineLF();
-                sb.AppendLineLF("Direct links to attachments in original message:");
+                sb.AppendLineLF("The following files are present in the original message:");
 
-                foreach (DiscordAttachment attachment in mergedAttachments)
+                foreach (DiscordAttachment attachment in nonImageAttachments)
                 {
-                    sb.AppendLineLF($"[{attachment.FileName}]({attachment.Url})");
+                    sb.AppendLineLF($"`{attachment.FileName}`");
                 }
             }
 
@@ -383,6 +408,16 @@ public class MigrateResourcesJob : IJob
             return result;
         }
 
+        public List<DiscordAttachment> GetImageAttachments()
+        {
+            List<DiscordAttachment> imageAttachments = ContentMessages
+                .SelectMany(x => x.Attachments)
+                .Where(x => x.MediaType != null && x.MediaType.StartsWith("image"))
+                .ToList();
+
+            return imageAttachments;
+        }
+
         public string[] GetComments()
         {
             var commentTextList = new List<string>();
@@ -390,27 +425,27 @@ public class MigrateResourcesJob : IJob
             foreach (DiscordMessage message in CommentMessages)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine(message.Content);
+                sb.AppendLineLF(message.Content);
 
                 IReadOnlyList<DiscordAttachment> messageAttachments = message.Attachments;
 
                 if (messageAttachments.Count > 0)
                 {
-                    sb.AppendLine();
-                    sb.AppendLine("Direct links to attachments in original message:");
-                }
+                    sb.AppendLineLF();
+                    sb.AppendLineLF("The following files are present in the original message:");
 
-                foreach (DiscordAttachment attachment in messageAttachments)
-                {
-                    sb.AppendLine($"[{attachment.FileName}]({attachment.Url})");
+                    foreach (DiscordAttachment attachment in messageAttachments)
+                    {
+                        sb.AppendLineLF($"`{attachment.FileName}`");
+                    }
                 }
 
                 DiscordUser? author = message.Author;
                 string authorMentionOrUsername = author is null ? "Unknown" : author.Mention;
                 var messageLink = message.JumpLink.ToString();
 
-                sb.AppendLine();
-                sb.AppendLine($"[View original message]({messageLink}) by {authorMentionOrUsername}.");
+                sb.AppendLineLF();
+                sb.AppendLineLF($"[View original message]({messageLink}) by {authorMentionOrUsername}.");
 
                 commentTextList.Add(sb.ToString().Trim());
             }
