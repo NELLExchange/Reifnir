@@ -60,4 +60,11 @@ public static class DiscordExtensions
     {
         _ = guild ?? throw new InvalidOperationException("Guild null null");
     }
+
+    public static bool IsImageAttachment(this DiscordAttachment attachment)
+    {
+        var imageExtensions = new[] { "png", "jpg", "jpeg", "gif", "webp" };
+        return attachment.MediaType?.StartsWith("image")
+               ?? imageExtensions.Any(ext => (attachment.FileName ?? string.Empty).EndsWith($".{ext}"));
+    }
 }

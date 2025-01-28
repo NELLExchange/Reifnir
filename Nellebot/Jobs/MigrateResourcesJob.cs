@@ -314,7 +314,7 @@ public class MigrateResourcesJob : IJob
         public DiscordMessage FirstContentMessage => ContentMessages.First();
 
         public int NonImageAttachmentCount => ContentMessages.SelectMany(x => x.Attachments)
-            .Count(x => x.MediaType == null || !x.MediaType.StartsWith("image"));
+            .Count(x => !x.IsImageAttachment());
 
         public void AddContentMessage(DiscordMessage message)
         {
@@ -358,7 +358,7 @@ public class MigrateResourcesJob : IJob
 
             List<DiscordAttachment> nonImageAttachments = ContentMessages
                 .SelectMany(x => x.Attachments)
-                .Where(x => x.MediaType == null || !x.MediaType.StartsWith("image"))
+                .Where(x => !x.IsImageAttachment())
                 .ToList();
 
             if (nonImageAttachments.Count > 0)
@@ -412,7 +412,7 @@ public class MigrateResourcesJob : IJob
         {
             List<DiscordAttachment> imageAttachments = ContentMessages
                 .SelectMany(x => x.Attachments)
-                .Where(x => x.MediaType != null && x.MediaType.StartsWith("image"))
+                .Where(x => x.IsImageAttachment())
                 .ToList();
 
             return imageAttachments;
