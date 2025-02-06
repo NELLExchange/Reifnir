@@ -16,7 +16,16 @@ public record RunJobCommand : BotCommandCommand
         JobKeyName = jobKeyName;
     }
 
+    public RunJobCommand(CommandContext ctx, string jobKeyName, bool dryRun)
+        : base(ctx)
+    {
+        JobKeyName = jobKeyName;
+        DryRun = dryRun;
+    }
+
     public string JobKeyName { get; }
+
+    public bool? DryRun { get; }
 }
 
 public class RunJobCommandHandler : IRequestHandler<RunJobCommand>
@@ -25,6 +34,7 @@ public class RunJobCommandHandler : IRequestHandler<RunJobCommand>
     [
         RoleMaintenanceJob.Key,
         ModmailCleanupJob.Key,
+        MigrateResourcesJob.Key,
     ];
 
     private readonly ISchedulerFactory _schedulerFactory;
@@ -48,7 +58,14 @@ public class RunJobCommandHandler : IRequestHandler<RunJobCommand>
 
         IScheduler scheduler = await _schedulerFactory.GetScheduler(cancellationToken);
 
-        await scheduler.TriggerJob(jobKey, cancellationToken);
+        var jobDataMap = new JobDataMap();
+
+        if (request.DryRun.HasValue)
+        {
+            jobDataMap["dryRun"] = request.DryRun.Value;
+        }
+
+        await scheduler.TriggerJob(jobKey, jobDataMap, cancellationToken);
 
         await ctx.RespondAsync($"Job triggered: {jobKey}");
     }
