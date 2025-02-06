@@ -1,11 +1,19 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
-
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <UserSecretsId>dotnet-Nellebot-A35E98EA-550A-4966-AD77-530BC4395F56</UserSecretsId>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
-
+    <PropertyGroup>
+        <!-- AssemblySemvVer: Major.Minor.Patch.0 -->
+        <AssemblyVersion>1.2.3.0</AssemblyVersion>
+        <!-- AssemblySemFileVer: Major.Minor.Patch.0 -->
+        <FileVersion>1.2.3.0</FileVersion>
+        <!-- FullSemVer: SemVer + BuildMetaData -->
+        <InformationalVersion>1.2.3-a.4+5</InformationalVersion>
+        <!-- SemVer: The semantical version number, including PreReleaseTagWithDash for pre-release version numbers. -->
+        <Version>1.2.3-a.4</Version>
+    </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="DSharpPlus" Version="5.0.0-alpha.5" />
         <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-alpha.5" />
@@ -28,12 +36,10 @@
         </PackageReference>
         <PackageReference Include="ZooIds" Version="0.1.0" />
     </ItemGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\Nellebot.Common\Nellebot.Common.csproj" />
         <ProjectReference Include="..\Nellebot.Data\Nellebot.Data.csproj" />
     </ItemGroup>
-
     <ItemGroup>
         <None Update="Resources\ScribanTemplates\OrdbokArticleV2.sbntxt">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

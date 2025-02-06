@@ -1,8 +1,12 @@
 workflow: GitHubFlow/v1
+assembly-informational-format: '{FullSemVer}'
 major-version-bump-message: "^(build|chore|ci|docs|feat|feature|fix|bug|bugfix|perf|refactor|revert|style|test)(\\([\\w\\s-,/\\\\]*\\))?(!:|:.*\\n\\n((.+\\n)+\\n)?BREAKING CHANGE:\\s.+)"
-minor-version-bump-message: "^(feat|feature)(\\([\\w\\s-,/\\\\]*\\))?:"
-patch-version-bump-message: "^(fix|bug|bugfix|perf)(\\([\\w\\s-,/\\\\]*\\))?:"
+minor-version-bump-message: "^(feat|feature)(\\([\\w\\s-,/\\\\]*\\))?(:|/)"
+patch-version-bump-message: "^(fix|bug|bugfix|perf)(\\([\\w\\s-,/\\\\]*\\))?(:|/)"
 branches:
+  main:
+    mode: ContinuousDeployment
+    increment: Patch
   feature:
-    mode: ContinuousDelivery
+    mode: ManualDeployment
     increment: Minor

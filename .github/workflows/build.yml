@@ -58,6 +58,11 @@ jobs:
         with:
           arguments: '/showvariable FullSemVer'
 
+      - name: Update the version number in the project files
+        uses: gittools/actions/gitversion/command@v3.0.0
+        with:
+          arguments: '/updateprojectfiles'
+
       - name: Test
         run: dotnet test
 

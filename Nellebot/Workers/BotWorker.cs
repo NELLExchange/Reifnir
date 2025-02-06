@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
@@ -42,7 +44,17 @@ public class BotWorker : IHostedService
     {
         string commandPrefix = _options.CommandPrefix;
 
-        var activity = new DiscordActivity($"\"{commandPrefix}help\" for help", DiscordActivityType.Playing);
+        string? productVersion =
+            FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion;
+
+        const int gitFullShaLength = 40;
+        string versionString = !string.IsNullOrWhiteSpace(productVersion)
+            ? productVersion[..^(gitFullShaLength + 1)]
+            : "0.0.0";
+
+        var activity = new DiscordActivity(
+            $"Use {commandPrefix}help for help (v{versionString})",
+            DiscordActivityType.Custom);
 
         await _client.ConnectAsync(activity);
     }
