@@ -12,7 +12,8 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: reifnir
   COMPOSE_PROJECT_NAME: nellebot
-  COMPOSE_FILE_PATH_SRC: docker-prod/docker-compose.yml
+  COMPOSE_FILE_PATH_SRC: docker/docker-compose.prod.yml
+  COMPOSE_FILENAME: docker-compose.prod.yml
   DB_NAME: nellebot
   DB_BACKUP_SCRIPT: nellebot-backup-db.sh
   DB_MIGRATION_SCRIPT: database_migration.sql
@@ -152,7 +153,7 @@ jobs:
             docker compose -p $COMPOSE_PROJECT_NAME down || true
 
             # Start the new compose project
-            docker compose -p $COMPOSE_PROJECT_NAME -f "$HOME/docker-compose.yml" up -d
+            docker compose -p $COMPOSE_PROJECT_NAME -f "$HOME/$COMPOSE_FILENAME" up -d
 
             # Prune untagged images
             docker image prune -f
@@ -166,7 +167,7 @@ jobs:
             IMAGE_NAME,
             IMAGE_TAG,
             COMPOSE_PROJECT_NAME,
-            COMPOSE_FILE_PATH_SRC,
+            COMPOSE_FILENAME,
             DB_NAME,
             DB_BACKUP_SCRIPT,
             DB_MIGRATION_SCRIPT,

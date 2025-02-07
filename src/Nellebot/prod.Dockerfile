@@ -12,6 +12,7 @@ RUN dotnet restore "./Nellebot.Data.Migrations/Nellebot.Data.Migrations.csproj"
 RUN dotnet tool restore
 COPY ["Nellebot.sln", "."]
 COPY ["stylecop.json", "."]
+COPY [".editorconfig", "."]
 COPY ["scripts/nellebot-backup-db.sh", "."] 
 COPY src .
 RUN dotnet build "./Nellebot/Nellebot.csproj" --no-restore -c $BUILD_CONFIGURATION
