@@ -9,4 +9,7 @@
     <ItemGroup>
         <None Include="docker-compose.yml" />
     </ItemGroup>
+    <ItemGroup>
+      <Content Include="launchSettings.json" />
+    </ItemGroup>
 </Project>

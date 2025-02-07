@@ -24,7 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Nellebot\Nellebot.csproj" />
+        <ProjectReference Include="..\..\src\Nellebot\Nellebot.csproj" />
     </ItemGroup>
 
     <ItemGroup>
