@@ -10,6 +10,7 @@
         <None Include="docker-compose.yml" />
     </ItemGroup>
     <ItemGroup>
-      <Content Include="launchSettings.json" />
+        <Content Include="docker-compose.prod.yml" />
+        <Content Include="launchSettings.json" />
     </ItemGroup>
 </Project>
