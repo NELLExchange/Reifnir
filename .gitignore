@@ -1,6 +1,3 @@
-Nellebot.Data.Migrations/database_migration.sql
-Nellebot.Tests/TestFiles/*
-!Nellebot.Tests/TestFiles/.gitkeep
 *.local
 *.swp
 .secrets
@@ -344,3 +341,6 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+tests/Nellebot.Tests/TestFiles/*
+!tests/Nellebot.Tests/TestFiles/.gitkeep

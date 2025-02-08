@@ -1,6 +1,0 @@
-services:
-  nellebot:
-    build:
-      context: ..
-      dockerfile: docker-prod/Dockerfile
-      no_cache: true

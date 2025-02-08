@@ -4,9 +4,10 @@ services:
   nellebot:
     build:
       context: ..
-      dockerfile: Nellebot/Dockerfile
+      dockerfile: src/Nellebot/Dockerfile
     environment:
       - DOTNET_ENVIRONMENT=Development
+    env_file: .env.local
     volumes:
       - nellebot-keydata:/keydata
       - ${USERPROFILE}/.nellebot-certs:/certs
@@ -34,7 +35,7 @@ services:
     depends_on:
       - nellebot-pgsql
     environment:
-      PGADMIN_DEFAULT_EMAIL: katt@bot.local
+      PGADMIN_DEFAULT_EMAIL: nelle@bot.local
       PGADMIN_DEFAULT_PASSWORD: hunter2
 
 volumes:
