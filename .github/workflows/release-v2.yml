@@ -179,6 +179,7 @@ jobs:
   
   create-release:
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
       packages: read
       contents: read
