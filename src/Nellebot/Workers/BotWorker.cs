@@ -47,10 +47,16 @@ public class BotWorker : IHostedService
         string? productVersion =
             FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion;
 
-        const int gitFullShaLength = 40;
-        string versionString = !string.IsNullOrWhiteSpace(productVersion)
-            ? productVersion[..^(gitFullShaLength + 1)]
-            : "0.0.0";
+        var versionString = "?.?.?";
+
+        if (!string.IsNullOrWhiteSpace(productVersion))
+        {
+            const int gitFullShaLength = 40;
+
+            versionString = productVersion.Length > gitFullShaLength
+                ? productVersion[..^(gitFullShaLength + 1)]
+                : productVersion;
+        }
 
         var activity = new DiscordActivity(
             $"Use {commandPrefix}help for help (v{versionString})",
