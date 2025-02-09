@@ -13,7 +13,7 @@ env:
   IMAGE_NAME: reifnir
   COMPOSE_PROJECT_NAME: nellebot
   COMPOSE_FILE_PATH_SRC: docker/docker-compose.prod.yml
-  COMPOSE_FILENAME: docker-compose.prod.yml
+  COMPOSE_FILE_NAME: docker-compose.prod.yml
   DB_NAME: nellebot
   DB_BACKUP_SCRIPT: nellebot-backup-db.sh
   DB_MIGRATION_SCRIPT: database_migration.sql
@@ -30,7 +30,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up environment variables
         id: setup-vars
@@ -83,7 +83,7 @@ jobs:
       REPOSITORY_OWNER_LC: ${{ needs.setup.outputs.repositoryOwnerLC }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           sparse-checkout: |
             ${{ env.COMPOSE_FILE_PATH_SRC }}
@@ -149,17 +149,17 @@ jobs:
             # Run the database migration script
             psql -d $DB_NAME -q -f "$TMP_MIGRATIONS_DIR/$DB_MIGRATION_SCRIPT"
 
+            # Remove the temporary directory
+            rm -rf $TMP_MIGRATIONS_DIR
+
             # Take down the old compose project, if it exists
             docker compose -p $COMPOSE_PROJECT_NAME down || true
 
             # Start the new compose project
-            docker compose -p $COMPOSE_PROJECT_NAME -f "$HOME/$COMPOSE_FILENAME" up -d
+            docker compose -p $COMPOSE_PROJECT_NAME -f "$HOME/$COMPOSE_FILE_NAME" up -d
 
             # Prune untagged images
             docker image prune -f
-
-            # Remove the temporary directory
-            rm -rf $TMP_MIGRATIONS_DIR
           envs: >-
             HOST_GATEWAY_IP,
             REGISTRY,
@@ -167,7 +167,7 @@ jobs:
             IMAGE_NAME,
             IMAGE_TAG,
             COMPOSE_PROJECT_NAME,
-            COMPOSE_FILENAME,
+            COMPOSE_FILE_NAME,
             DB_NAME,
             DB_BACKUP_SCRIPT,
             DB_MIGRATION_SCRIPT,

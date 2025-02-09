@@ -14,6 +14,7 @@ COPY ["src/Nellebot.Data/Nellebot.Data.csproj", "Nellebot.Data/"]
 RUN dotnet restore "./Nellebot/Nellebot.csproj"
 COPY ["Nellebot.sln", "."]
 COPY ["stylecop.json", "."]
+COPY [".editorconfig", "."]
 COPY src .
 RUN dotnet build "./Nellebot/Nellebot.csproj" -c $BUILD_CONFIGURATION --no-restore
 USER $APP_UID

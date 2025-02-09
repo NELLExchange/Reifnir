@@ -26,23 +26,4 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Nellebot\Nellebot.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-        <None Update="TestFiles\test_vann_66433.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="TestFiles\test_hus_24627.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="TestFiles\test_vann.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="TestFiles\test.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="TestFiles\test_hus.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
 </Project>
