@@ -11,7 +11,7 @@ using Nellebot.CommandHandlers;
 using Nellebot.Utils;
 using Nellebot.Workers;
 
-namespace Nellebot.CommandModules.Roles;
+namespace Nellebot.CommandModules;
 
 public class TrustedMemberModule
 {
