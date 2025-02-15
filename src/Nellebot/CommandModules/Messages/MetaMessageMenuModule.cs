@@ -8,16 +8,19 @@ using DSharpPlus.Commands.Processors.SlashCommands.Localization;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
+using Microsoft.Extensions.Options;
 using Nellebot.Attributes;
 
 namespace Nellebot.CommandModules.Messages;
 
 public class MetaMessageMenuModule
 {
+    private readonly BotOptions _options;
     private readonly InteractivityExtension _interactivityExtension;
 
-    public MetaMessageMenuModule(InteractivityExtension interactivityExtension)
+    public MetaMessageMenuModule(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
     {
+        _options = options.Value;
         _interactivityExtension = interactivityExtension;
     }
 
@@ -27,6 +30,12 @@ public class MetaMessageMenuModule
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
     public async Task AddMessage(SlashCommandContext ctx, DiscordMessage _)
     {
+        if (!_options.MetaChannelIds.Contains(ctx.Channel.Id))
+        {
+            await ctx.RespondAsync("This channel is not a meta channel!", true);
+            return;
+        }
+
         var modalTextInputKey = $"add-message-input-{Guid.NewGuid()}";
 
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
@@ -66,6 +75,20 @@ public class MetaMessageMenuModule
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
     public async Task EditMessage(SlashCommandContext ctx, DiscordMessage message)
     {
+        if (!_options.MetaChannelIds.Contains(message.ChannelId))
+        {
+            await ctx.RespondAsync("The message is not in a meta channel!", true);
+            return;
+        }
+
+        DiscordUser messageAuthor = message.Author ?? throw new Exception("Message author is null!");
+
+        if (messageAuthor.Id != ctx.Client.CurrentUser.Id)
+        {
+            await ctx.RespondAsync("The message is not from the bot!", true);
+            return;
+        }
+
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle("Edit the message")
             .WithCustomId("edit-message")
