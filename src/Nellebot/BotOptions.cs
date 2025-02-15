@@ -44,6 +44,8 @@ public class BotOptions
 
     public ulong SuggestionsChannelId { get; init; }
 
+    public ulong[] MetaChannelIds { get; init; } = [];
+
     public ulong AwardChannelId { get; init; }
 
     public ulong[] AwardVoteGroupIds { get; init; } = [];
