@@ -18,7 +18,7 @@ public class MetaMessageModule
 {
     private readonly InteractivityExtension _interactivityExtension;
 
-    public MetaMessageModule(InteractivityExtension interactivityExtension)
+    public MetaMessageSlashModule(InteractivityExtension interactivityExtension)
     {
         _interactivityExtension = interactivityExtension;
     }
