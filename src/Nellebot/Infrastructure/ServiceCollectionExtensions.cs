@@ -7,6 +7,7 @@ using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Commands.EventArgs;
 using DSharpPlus.Commands.Exceptions;
 using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.NamingPolicies;
 using DSharpPlus.Commands.Processors.TextCommands;
 using DSharpPlus.Commands.Processors.TextCommands.Parsing;
 using DSharpPlus.Entities;
@@ -100,6 +101,14 @@ public static class ServiceCollectionExtensions
                     });
 
                 commands.AddProcessor(textCommandProcessor);
+
+                var slashCommandProcessor = new SlashCommandProcessor(
+                    new SlashCommandConfiguration()
+                    {
+                        NamingPolicy = new KebabCaseNamingPolicy(),
+                    });
+
+                commands.AddProcessor(slashCommandProcessor);
 
                 commands.AddChecks(typeof(Program).Assembly);
 
