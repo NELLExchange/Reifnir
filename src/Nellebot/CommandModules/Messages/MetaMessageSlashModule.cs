@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus.Commands;
@@ -14,7 +15,8 @@ namespace Nellebot.CommandModules.Messages;
 [BaseCommandCheck]
 [RequireTrustedMember]
 [Command("meta-msg")]
-public class MetaMessageModule
+[Description("Manage meta messages")]
+public class MetaMessageSlashModule
 {
     private readonly InteractivityExtension _interactivityExtension;
 
@@ -24,7 +26,11 @@ public class MetaMessageModule
     }
 
     [Command("add")]
-    public async Task AddMessage(SlashCommandContext ctx)
+    [Description("Add a new meta message to the current channel or a specified channel.")]
+    public async Task AddMessage(
+        SlashCommandContext ctx,
+        [Description("Optional channel to add the message to. Defaults to the current channel.")]
+        DiscordChannel? channel = null)
     {
         var modalTextInputKey = $"add-message-input-{Guid.NewGuid()}";
 
@@ -54,7 +60,9 @@ public class MetaMessageModule
             throw new Exception("Message was empty!");
         }
 
-        DiscordMessage sentMessage = await ctx.Channel.SendMessageAsync(addedMessageText);
+        DiscordChannel destinationChannel = channel ?? ctx.Channel;
+
+        DiscordMessage sentMessage = await destinationChannel.SendMessageAsync(addedMessageText);
 
         DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
             .WithContent($"Message added successfully! [Jump to message]({sentMessage.JumpLink})").AsEphemeral();
@@ -62,20 +70,9 @@ public class MetaMessageModule
     }
 
     [Command("edit")]
-    public async Task EditMessage(SlashCommandContext ctx, ulong messageId)
+    [Description("Edit meta message")]
+    public async Task EditMessage(SlashCommandContext ctx, DiscordMessage message)
     {
-        DiscordMessage? message;
-
-        try
-        {
-            message = await ctx.Channel.GetMessageAsync(messageId, true);
-        }
-        catch (Exception)
-        {
-            await ctx.RespondAsync("Message not found!", true);
-            return;
-        }
-
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle("Edit the message")
             .WithCustomId("edit-message")
