@@ -165,6 +165,8 @@ dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:none
 dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary:none
 
 # ReSharper properties
+resharper_arguments_literal = named
+resharper_arguments_skip_single = true
 resharper_blank_lines_after_control_transfer_statements = 1
 resharper_blank_lines_around_single_line_auto_property = 1
 resharper_braces_for_for = required
@@ -174,6 +176,7 @@ resharper_braces_for_while = required
 resharper_braces_redundant = false
 resharper_csharp_empty_block_style = together
 resharper_csharp_insert_final_newline = true
+resharper_csharp_keep_blank_lines_in_code = 1
 resharper_csharp_keep_blank_lines_in_declarations = 1
 resharper_csharp_wrap_after_declaration_lpar = true
 resharper_csharp_wrap_after_invocation_lpar = true
