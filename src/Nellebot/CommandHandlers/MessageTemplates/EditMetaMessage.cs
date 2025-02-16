@@ -9,6 +9,7 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using MediatR;
 using Microsoft.Extensions.Options;
+using Nellebot.Services.Loggers;
 using Nellebot.Utils;
 
 namespace Nellebot.CommandHandlers.MessageTemplates;
@@ -27,11 +28,16 @@ public record EditMetaMessageCommand : BotSlashCommand
 public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
 {
     private readonly InteractivityExtension _interactivityExtension;
+    private readonly DiscordLogger _discordLogger;
     private readonly BotOptions _options;
 
-    public EditMetaMessageHandler(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
+    public EditMetaMessageHandler(
+        IOptions<BotOptions> options,
+        InteractivityExtension interactivityExtension,
+        DiscordLogger discordLogger)
     {
         _interactivityExtension = interactivityExtension;
+        _discordLogger = discordLogger;
         _options = options.Value;
     }
 
@@ -39,6 +45,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
     {
         SlashCommandContext ctx = request.Ctx;
         DiscordMessage message = request.Message;
+        DiscordChannel channel = message.Channel ?? throw new Exception(message: "Message channel is null!");
 
         if (!_options.MetaChannelIds.Contains(message.ChannelId))
         {
@@ -90,6 +97,14 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             }
 
             await message.ModifyAsync(editedMessageText);
+
+            DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
+                                              ?? throw new InteractionException(
+                                                  modalInteraction,
+                                                  "Interaction author is not a member!");
+
+            var title = $"Meta message edited in {channel.Name} by {interactionAuthor.DisplayName}";
+            _discordLogger.LogExtendedActivityMessage(EmbedBuilderHelper.BuildSimpleEmbed(title, editedMessageText));
 
             DiscordFollowupMessageBuilder followup = new DiscordFollowupMessageBuilder()
                 .WithContent($"Message edited successfully! [Jump to message]({message.JumpLink})")

@@ -8,6 +8,7 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using MediatR;
 using Microsoft.Extensions.Options;
+using Nellebot.Services.Loggers;
 using Nellebot.Utils;
 
 namespace Nellebot.CommandHandlers.MessageTemplates;
@@ -26,11 +27,16 @@ public record AddMetaMessageCommand : BotSlashCommand
 public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
 {
     private readonly InteractivityExtension _interactivityExtension;
+    private readonly DiscordLogger _discordLogger;
     private readonly BotOptions _options;
 
-    public AddMetaMessageHandler(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
+    public AddMetaMessageHandler(
+        IOptions<BotOptions> options,
+        InteractivityExtension interactivityExtension,
+        DiscordLogger discordLogger)
     {
         _interactivityExtension = interactivityExtension;
+        _discordLogger = discordLogger;
         _options = options.Value;
     }
 
@@ -58,7 +64,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
                     string.Empty,
                     required: true,
                     DiscordTextInputStyle.Paragraph,
-                    min_length: 1,
+                    min_length: 0,
                     DiscordConstants.MaxMessageLength));
 
         await ctx.RespondWithModalAsync(interactionBuilder);
@@ -79,6 +85,14 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
             }
 
             DiscordMessage sentMessage = await request.Channel.SendMessageAsync(addedMessageText);
+
+            DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
+                                              ?? throw new InteractionException(
+                                                  modalInteraction,
+                                                  "Interaction author is not a member!");
+
+            var title = $"Meta message added in {request.Channel.Name} by {interactionAuthor.DisplayName}";
+            _discordLogger.LogExtendedActivityMessage(EmbedBuilderHelper.BuildSimpleEmbed(title, addedMessageText));
 
             DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
                 .WithContent($"Message added successfully! [Jump to message]({sentMessage.JumpLink})").AsEphemeral();
