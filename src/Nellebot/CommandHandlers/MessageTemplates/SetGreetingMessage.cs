@@ -5,7 +5,7 @@ using DSharpPlus.Commands;
 using MediatR;
 using Nellebot.Services;
 
-namespace Nellebot.CommandHandlers;
+namespace Nellebot.CommandHandlers.MessageTemplates;
 
 public record SetGreetingMessageCommand : BotCommandCommand
 {
