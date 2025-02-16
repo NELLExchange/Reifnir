@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DSharpPlus.Entities;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nellebot.Workers;
 
@@ -32,6 +33,11 @@ public class DiscordLogger
         LogMessageCore(message, _options.ExtendedActivityLogChannelId);
     }
 
+    public void LogExtendedActivityMessage(DiscordEmbed message)
+    {
+        LogMessageCore(message, _options.ExtendedActivityLogChannelId);
+    }
+
     public void LogTrustedChannelMessage(string message)
     {
         LogMessageCore(message, _options.TrustedChannelId);
@@ -43,8 +49,17 @@ public class DiscordLogger
 
         var discordLogItem = new DiscordLogItem<string>(message, guildId, channelId);
 
-        bool sucess = _channel.Writer.TryWrite(discordLogItem);
+        if (!_channel.Writer.TryWrite(discordLogItem))
+            _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);
+    }
 
-        if (!sucess) _logger.LogError("Could not write to DiscordLogChannel");
+    private void LogMessageCore(DiscordEmbed message, ulong channelId)
+    {
+        ulong guildId = _options.GuildId;
+
+        var discordLogItem = new DiscordLogItem<DiscordEmbed>(message, guildId, channelId);
+
+        if (!_channel.Writer.TryWrite(discordLogItem))
+            _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);
     }
 }
