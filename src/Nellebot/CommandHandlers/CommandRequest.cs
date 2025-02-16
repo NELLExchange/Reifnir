@@ -30,14 +30,15 @@ public record MessageCommand : ICommand
     public MessageContext Ctx { get; }
 }
 
-public record BotSlashCommand : ICommand
+public record BotSlashCommand : BotCommandCommand
 {
     protected BotSlashCommand(SlashCommandContext ctx)
+        : base(ctx)
     {
         Ctx = ctx;
     }
 
-    public SlashCommandContext Ctx { get; }
+    public new SlashCommandContext Ctx { get; }
 }
 
 public record BotCommandCommand : ICommand
