@@ -7,6 +7,7 @@ using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 using Nellebot.Attributes;
 using Nellebot.CommandHandlers;
+using Nellebot.CommandHandlers.MessageTemplates;
 using Nellebot.CommandHandlers.Ordbok;
 using Nellebot.Common.Extensions;
 using Nellebot.Utils;
