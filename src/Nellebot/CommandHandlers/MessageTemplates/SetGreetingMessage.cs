@@ -15,7 +15,7 @@ public record SetGreetingMessageCommand : BotCommandCommand
         GreetingMessage = greetingMessage;
     }
 
-    public string GreetingMessage { get; set; }
+    public string GreetingMessage { get; }
 }
 
 public class SetGreetingMessageHandler : IRequestHandler<SetGreetingMessageCommand>
