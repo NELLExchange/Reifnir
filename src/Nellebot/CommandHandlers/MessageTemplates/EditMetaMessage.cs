@@ -103,8 +103,11 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
                                                   modalInteraction,
                                                   "Interaction author is not a member!");
 
-            var title = $"Meta message edited in {channel.Name} by {interactionAuthor.DisplayName}";
-            _discordLogger.LogExtendedActivityMessage(EmbedBuilderHelper.BuildSimpleEmbed(title, editedMessageText));
+            var activityMessageText = $"Meta message edited in {channel.Mention} by {interactionAuthor.Mention}";
+            DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
+                .WithContent(activityMessageText)
+                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(editedMessageText));
+            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
 
             DiscordFollowupMessageBuilder followup = new DiscordFollowupMessageBuilder()
                 .WithContent($"Message edited successfully! [Jump to message]({message.JumpLink})")

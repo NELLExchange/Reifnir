@@ -91,8 +91,12 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
                                                   modalInteraction,
                                                   "Interaction author is not a member!");
 
-            var title = $"Meta message added in {request.Channel.Name} by {interactionAuthor.DisplayName}";
-            _discordLogger.LogExtendedActivityMessage(EmbedBuilderHelper.BuildSimpleEmbed(title, addedMessageText));
+            var activityMessageText =
+                $"Meta message added in {request.Channel.Mention} by {interactionAuthor.Mention}";
+            DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
+                .WithContent(activityMessageText)
+                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(addedMessageText));
+            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
 
             DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
                 .WithContent($"Message added successfully! [Jump to message]({sentMessage.JumpLink})").AsEphemeral();

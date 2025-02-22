@@ -5,16 +5,19 @@ namespace Nellebot.Utils;
 
 public static class EmbedBuilderHelper
 {
-    public static DiscordEmbed BuildSimpleEmbed(string title, string message)
+    public static DiscordEmbed BuildSimpleEmbed(
+        string message,
+        int color = DiscordConstants.DefaultEmbedColor)
     {
-        return BuildSimpleEmbed(title, message, DiscordConstants.DefaultEmbedColor);
+        return BuildSimpleEmbed(string.Empty, message, color);
     }
 
-    public static DiscordEmbed BuildSimpleEmbed(string title, string message, int color)
+    public static DiscordEmbed BuildSimpleEmbed(
+        string title,
+        string message,
+        int color = DiscordConstants.DefaultEmbedColor)
     {
-        string truncatedMessage = message.Substring(
-            0,
-            Math.Min(message.Length, DiscordConstants.MaxEmbedContentLength));
+        string truncatedMessage = message[..Math.Min(message.Length, DiscordConstants.MaxEmbedContentLength)];
 
         DiscordEmbedBuilder eb = new DiscordEmbedBuilder()
             .WithTitle(title)

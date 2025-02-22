@@ -33,7 +33,7 @@ public class DiscordLogger
         LogMessageCore(message, _options.ExtendedActivityLogChannelId);
     }
 
-    public void LogExtendedActivityMessage(DiscordEmbed message)
+    public void LogExtendedActivityMessage(DiscordMessageBuilder message)
     {
         LogMessageCore(message, _options.ExtendedActivityLogChannelId);
     }
@@ -53,11 +53,11 @@ public class DiscordLogger
             _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);
     }
 
-    private void LogMessageCore(DiscordEmbed message, ulong channelId)
+    private void LogMessageCore(DiscordMessageBuilder message, ulong channelId)
     {
         ulong guildId = _options.GuildId;
 
-        var discordLogItem = new DiscordLogItem<DiscordEmbed>(message, guildId, channelId);
+        var discordLogItem = new DiscordLogItem<DiscordMessageBuilder>(message, guildId, channelId);
 
         if (!_channel.Writer.TryWrite(discordLogItem))
             _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);

@@ -43,8 +43,11 @@ public class DiscordLoggerWorker : BackgroundService
                         case DiscordLogItem<string> discordLogItem:
                             await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
-                        case DiscordLogItem<DiscordEmbed> discordEmbedLogItem:
-                            await logChannel.SendMessageAsync(discordEmbedLogItem.Message);
+                        case DiscordLogItem<DiscordEmbed> discordLogItem:
+                            await logChannel.SendMessageAsync(discordLogItem.Message);
+                            break;
+                        case DiscordLogItem<DiscordMessageBuilder> discordLogItem:
+                            await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
                         default:
                             throw new NotImplementedException();
