@@ -84,7 +84,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
                 throw new InteractionException(modalInteraction, "Message was empty!");
             }
 
-            DiscordMessage sentMessage = await request.Channel.SendMessageAsync(addedMessageText);
+            DiscordMessage sentMessage = await request.Channel.SendSuppressedMessageAsync(addedMessageText);
 
             DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
                                               ?? throw new InteractionException(
