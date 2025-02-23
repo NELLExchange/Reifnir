@@ -177,7 +177,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         if (usernameUpdated) totalChanges++;
 
         // Test if there actually are several changes in the same event
-        if (totalChanges > 1)
+        if (totalChanges > 2)
         {
             _discordLogger.LogExtendedActivityMessage(
                 $"{nameof(GuildMemberUpdatedNotification)} contained {totalChanges} changes");

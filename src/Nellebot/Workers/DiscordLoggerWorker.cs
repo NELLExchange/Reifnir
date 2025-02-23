@@ -6,6 +6,7 @@ using DSharpPlus.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nellebot.Utils;
 
 namespace Nellebot.Workers;
 
@@ -41,13 +42,13 @@ public class DiscordLoggerWorker : BackgroundService
                     switch (logItem)
                     {
                         case DiscordLogItem<string> discordLogItem:
-                            await logChannel.SendMessageAsync(discordLogItem.Message);
+                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
                             break;
                         case DiscordLogItem<DiscordEmbed> discordLogItem:
-                            await logChannel.SendMessageAsync(discordLogItem.Message);
+                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
                             break;
                         case DiscordLogItem<DiscordMessageBuilder> discordLogItem:
-                            await logChannel.SendMessageAsync(discordLogItem.Message);
+                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
                             break;
                         default:
                             throw new NotImplementedException();
@@ -83,7 +84,7 @@ public class DiscordLoggerWorker : BackgroundService
 
             ArgumentNullException.ThrowIfNull(errorLogChannel);
 
-            await errorLogChannel.SendMessageAsync(
+            await errorLogChannel.SendSuppressedMessageAsync(
                 $"Failed to log original error message. Reason: {exception.Message}");
         }
         catch (Exception ex)
