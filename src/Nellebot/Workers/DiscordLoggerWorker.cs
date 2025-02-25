@@ -42,13 +42,22 @@ public class DiscordLoggerWorker : BackgroundService
                     switch (logItem)
                     {
                         case DiscordLogItem<string> discordLogItem:
-                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
                         case DiscordLogItem<DiscordEmbed> discordLogItem:
-                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
                         case DiscordLogItem<DiscordMessageBuilder> discordLogItem:
-                            await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
                         default:
                             throw new NotImplementedException();
