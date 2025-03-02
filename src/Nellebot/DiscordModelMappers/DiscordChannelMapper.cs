@@ -7,10 +7,11 @@ public static class DiscordChannelMapper
 {
     public static AppDiscordChannel Map(DiscordChannel discordChannel)
     {
-        var channel = new AppDiscordChannel();
-
-        channel.Id = discordChannel.Id;
-        channel.Name = discordChannel.Name;
+        var channel = new AppDiscordChannel
+        {
+            Id = discordChannel.Id,
+            Name = discordChannel.Name,
+        };
 
         return channel;
     }

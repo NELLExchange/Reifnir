@@ -1,10 +1,10 @@
 ﻿namespace Nellebot.Common.AppDiscordModels;
 
-public class AppDiscordRole
+public record AppDiscordRole
 {
-    public ulong Id { get; set; }
+    public required ulong Id { get; init; }
 
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
-    public bool HasAdminPermission { get; set; }
+    public bool HasAdminPermission { get; init; }
 }

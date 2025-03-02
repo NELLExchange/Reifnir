@@ -49,7 +49,7 @@ public class AuthorizationServiceTests
         _sut = new AuthorizationService(_optionsMock);
 
         // Member with admin role
-        AppDiscordMember member = BuildMember(1, 1);
+        AppDiscordMember member = BuildMember(id: 1, roleId: 1);
 
         // Act
         bool result = _sut.IsAdminOrMod(member);
@@ -71,7 +71,7 @@ public class AuthorizationServiceTests
         _sut = new AuthorizationService(_optionsMock);
 
         // Member without admin role
-        AppDiscordMember member = BuildMember(1, 2);
+        AppDiscordMember member = BuildMember(id: 1, roleId: 2);
 
         // Act
         bool result = _sut.IsAdminOrMod(member);
@@ -89,7 +89,7 @@ public class AuthorizationServiceTests
         _sut = new AuthorizationService(_optionsMock);
 
         // Member with trusted role
-        AppDiscordMember member = BuildMember(1, 1);
+        AppDiscordMember member = BuildMember(id: 1, roleId: 1);
 
         // Act
         bool result = _sut.IsTrustedMember(member);
@@ -125,7 +125,7 @@ public class AuthorizationServiceTests
         _sut = new AuthorizationService(_optionsMock);
 
         // Member with trusted role
-        AppDiscordMember member = BuildMember(1, 1);
+        AppDiscordMember member = BuildMember(id: 1, roleId: 1);
 
         // Act
         bool result = _sut.IsTrustedMember(member);
@@ -143,7 +143,7 @@ public class AuthorizationServiceTests
         _sut = new AuthorizationService(_optionsMock);
 
         // Member with trusted role
-        AppDiscordMember member = BuildMember(1, 2);
+        AppDiscordMember member = BuildMember(id: 1, roleId: 2);
 
         // Act
         bool result = _sut.IsTrustedMember(member);
@@ -162,6 +162,7 @@ public class AuthorizationServiceTests
                 new()
                 {
                     Id = roleId,
+                    Name = "member",
                 },
             },
         };
@@ -177,6 +178,7 @@ public class AuthorizationServiceTests
                 new()
                 {
                     Id = 0,
+                    Name = "admin",
                     HasAdminPermission = true,
                 },
             },
