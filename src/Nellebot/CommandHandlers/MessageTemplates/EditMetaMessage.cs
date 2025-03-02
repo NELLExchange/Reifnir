@@ -26,8 +26,7 @@ public record EditMetaMessageCommand : BotSlashCommand
 
 public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
 {
-    private const string ModalId = "edit-message";
-    private const string ModalTextInputId = "edit-message-input";
+    private const string ModalTextInputId = "modal-text-input";
     private readonly DiscordLogger _discordLogger;
     private readonly DiscordResolver _discordResolver;
     private readonly InteractivityExtension _interactivityExtension;
@@ -70,7 +69,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
         string decodedMessageContent = DiscordMentionEncoder.DecodeMentions(guild, message.Content);
 
         ModalSubmittedEventArgs modalSubmissionResult =
-            await ModalSubmittedEventArgs(ctx, decodedMessageContent, ModalTextInputId);
+            await ModalSubmittedEventArgs(ctx, decodedMessageContent);
 
         DiscordInteraction modalInteraction = modalSubmissionResult.Interaction;
 
@@ -113,18 +112,17 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
         }
     }
 
-    private async Task<ModalSubmittedEventArgs> ModalSubmittedEventArgs(
-        SlashCommandContext ctx,
-        string messageContent,
-        string modalTextInputId)
+    private async Task<ModalSubmittedEventArgs> ModalSubmittedEventArgs(SlashCommandContext ctx, string messageContent)
     {
+        var modalId = $"add-message-modal-{Guid.NewGuid()}";
+
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle(title: "Edit the message")
-            .WithCustomId(ModalId)
+            .WithCustomId(modalId)
             .AddComponents(
                 new DiscordTextInputComponent(
                     "Message",
-                    modalTextInputId,
+                    ModalTextInputId,
                     "Write a message...",
                     messageContent,
                     required: true,
@@ -135,7 +133,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
         await ctx.RespondWithModalAsync(interactionBuilder);
 
         InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
-            await _interactivityExtension.WaitForModalAsync(ModalId, DiscordConstants.MaxDeferredInteractionWait);
+            await _interactivityExtension.WaitForModalAsync(modalId, DiscordConstants.MaxDeferredInteractionWait);
 
         return modalSubmission.Result;
     }

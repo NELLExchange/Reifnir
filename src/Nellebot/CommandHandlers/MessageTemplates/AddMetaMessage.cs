@@ -26,7 +26,8 @@ public record AddMetaMessageCommand : BotSlashCommand
 
 public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
 {
-    private const string ModalId = "add-message";
+    private const string ModalTextInputId = "modal-text-input";
+
     private readonly InteractivityExtension _interactivityExtension;
     private readonly DiscordLogger _discordLogger;
     private readonly DiscordResolver _discordResolver;
@@ -54,9 +55,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
             return;
         }
 
-        var modalTextInputId = $"add-message-input-{Guid.NewGuid()}";
-
-        ModalSubmittedEventArgs modalSubmissionResult = await ShowAddMessageModal(ctx, modalTextInputId);
+        ModalSubmittedEventArgs modalSubmissionResult = await ShowAddMessageModal(ctx);
 
         DiscordInteraction modalInteraction = modalSubmissionResult.Interaction;
 
@@ -64,7 +63,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
 
         try
         {
-            string addMessageText = modalSubmissionResult.Values[modalTextInputId];
+            string addMessageText = modalSubmissionResult.Values[ModalTextInputId];
 
             if (string.IsNullOrWhiteSpace(addMessageText))
             {
@@ -100,15 +99,17 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
         }
     }
 
-    private async Task<ModalSubmittedEventArgs> ShowAddMessageModal(SlashCommandContext ctx, string modalTextInputId)
+    private async Task<ModalSubmittedEventArgs> ShowAddMessageModal(SlashCommandContext ctx)
     {
+        var modalId = $"add-message-modal-{Guid.NewGuid()}";
+
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle("Add a message")
-            .WithCustomId(ModalId)
+            .WithCustomId(modalId)
             .AddComponents(
                 new DiscordTextInputComponent(
                     "Message",
-                    modalTextInputId,
+                    ModalTextInputId,
                     "Write a message...",
                     string.Empty,
                     required: true,
@@ -119,7 +120,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
         await ctx.RespondWithModalAsync(interactionBuilder);
 
         InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
-            await _interactivityExtension.WaitForModalAsync(ModalId, DiscordConstants.MaxDeferredInteractionWait);
+            await _interactivityExtension.WaitForModalAsync(modalId, DiscordConstants.MaxDeferredInteractionWait);
 
         return modalSubmission.Result;
     }
