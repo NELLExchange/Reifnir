@@ -2,7 +2,7 @@
 
 namespace Nellebot.Utils;
 
-public class DiscordConstants
+public static class DiscordConstants
 {
     public const int MaxMessageLength = 2000;
     public const int MaxEmbedContentLength = 4096;
@@ -14,6 +14,9 @@ public class DiscordConstants
     public const char NewLineChar = '\n';
     public const string SlashCommandPrefix = "/";
 
-    public static readonly DateTimeOffset DiscordEpoch = new(2015, 1, 1, 0, 0, 0, TimeSpan.Zero);
-    public static readonly long DiscordEpochMs = DiscordEpoch.ToUnixTimeMilliseconds();
+    public static readonly long DiscordEpochMs =
+        new DateTimeOffset(year: 2015, month: 1, day: 1, hour: 0, minute: 0, second: 0, TimeSpan.Zero)
+            .ToUnixTimeMilliseconds();
+
+    public static readonly TimeSpan MaxDeferredInteractionWait = TimeSpan.FromMinutes(15);
 }

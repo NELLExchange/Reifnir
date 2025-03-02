@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,17 +26,22 @@ public record EditMetaMessageCommand : BotSlashCommand
 
 public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
 {
-    private readonly InteractivityExtension _interactivityExtension;
+    private const string ModalId = "edit-message";
+    private const string ModalTextInputId = "edit-message-input";
     private readonly DiscordLogger _discordLogger;
+    private readonly DiscordResolver _discordResolver;
+    private readonly InteractivityExtension _interactivityExtension;
     private readonly BotOptions _options;
 
     public EditMetaMessageHandler(
         IOptions<BotOptions> options,
         InteractivityExtension interactivityExtension,
-        DiscordLogger discordLogger)
+        DiscordLogger discordLogger,
+        DiscordResolver discordResolver)
     {
         _interactivityExtension = interactivityExtension;
         _discordLogger = discordLogger;
+        _discordResolver = discordResolver;
         _options = options.Value;
     }
 
@@ -45,7 +49,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
     {
         SlashCommandContext ctx = request.Ctx;
         DiscordMessage message = request.Message;
-        DiscordChannel channel = message.Channel ?? throw new Exception(message: "Message channel is null!");
+        DiscordChannel channel = message.Channel ?? throw new Exception("Message channel is null!");
 
         if (!_options.MetaChannelIds.Contains(message.ChannelId))
         {
@@ -53,7 +57,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             return;
         }
 
-        DiscordUser messageAuthor = message.Author ?? throw new Exception(message: "Message author is null!");
+        DiscordUser messageAuthor = message.Author ?? throw new Exception("Message author is null!");
 
         if (messageAuthor.Id != ctx.Client.CurrentUser.Id)
         {
@@ -61,42 +65,29 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             return;
         }
 
-        const string modalId = "edit-message";
-        const string modalTextInputId = "message";
+        var guild = _discordResolver.ResolveGuild().ToAppDiscordGuild();
 
-        DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
-            .WithTitle(title: "Edit the message")
-            .WithCustomId(modalId)
-            .AddComponents(
-                new DiscordTextInputComponent(
-                    "Message",
-                    modalTextInputId,
-                    "Write a message...",
-                    message.Content,
-                    required: true,
-                    DiscordTextInputStyle.Paragraph,
-                    min_length: 1,
-                    DiscordConstants.MaxMessageLength));
+        string decodedMessageContent = DiscordMentionEncoder.DecodeMentions(guild, message.Content);
 
-        await ctx.RespondWithModalAsync(interactionBuilder);
+        ModalSubmittedEventArgs modalSubmissionResult =
+            await ModalSubmittedEventArgs(ctx, decodedMessageContent, ModalTextInputId);
 
-        InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
-            await _interactivityExtension.WaitForModalAsync(modalId, TimeSpan.FromMinutes(value: 15));
-
-        DiscordInteraction modalInteraction = modalSubmission.Result.Interaction;
+        DiscordInteraction modalInteraction = modalSubmissionResult.Interaction;
 
         await modalInteraction.DeferAsync(ephemeral: true);
 
         try
         {
-            string editedMessageText = modalSubmission.Result.Values[modalTextInputId];
+            string editedMessageText = modalSubmissionResult.Values[ModalTextInputId];
 
             if (string.IsNullOrWhiteSpace(editedMessageText))
             {
                 throw new InteractionException(modalInteraction, "Message was empty!");
             }
 
-            await message.ModifyAsync(editedMessageText);
+            string encodedMessageText = DiscordMentionEncoder.EncodeMentions(guild, editedMessageText);
+
+            await message.ModifyAsync(encodedMessageText);
 
             DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
                                               ?? throw new InteractionException(
@@ -106,7 +97,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             var activityMessageText = $"Meta message edited in {channel.Mention} by {interactionAuthor.Mention}";
             DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
                 .WithContent(activityMessageText)
-                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(editedMessageText));
+                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(encodedMessageText));
             _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
 
             DiscordFollowupMessageBuilder followup = new DiscordFollowupMessageBuilder()
@@ -120,5 +111,32 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             var errorMessage = $"Failed to edit message: {ex.Message}";
             throw new InteractionException(modalInteraction, errorMessage, ex);
         }
+    }
+
+    private async Task<ModalSubmittedEventArgs> ModalSubmittedEventArgs(
+        SlashCommandContext ctx,
+        string messageContent,
+        string modalTextInputId)
+    {
+        DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
+            .WithTitle(title: "Edit the message")
+            .WithCustomId(ModalId)
+            .AddComponents(
+                new DiscordTextInputComponent(
+                    "Message",
+                    modalTextInputId,
+                    "Write a message...",
+                    messageContent,
+                    required: true,
+                    DiscordTextInputStyle.Paragraph,
+                    min_length: 1,
+                    DiscordConstants.MaxMessageLength));
+
+        await ctx.RespondWithModalAsync(interactionBuilder);
+
+        InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
+            await _interactivityExtension.WaitForModalAsync(ModalId, DiscordConstants.MaxDeferredInteractionWait);
+
+        return modalSubmission.Result;
     }
 }
