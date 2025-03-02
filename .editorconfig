@@ -87,6 +87,7 @@ dotnet_diagnostic.sa1101.severity = none # Prefix local calls with this
 dotnet_diagnostic.sa1200.severity = none # Using directive should appear within a namespace declaration
 dotnet_diagnostic.sa1201.severity = suggestion # Elements should appear in the correct order
 dotnet_diagnostic.sa1202.severity = suggestion # Elements should be ordered by access
+dotnet_diagnostic.sa1204.severity = suggestion # Static members should appear before non-static members
 
 # Naming
 
