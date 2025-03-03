@@ -14,6 +14,7 @@ public static class DiscordGuildMapper
             Name = guild.Name,
             Roles = guild.Roles.Values.Select(DiscordRoleMapper.Map).ToDictionary(x => x.Id),
             Channels = guild.Channels.Values.Select(DiscordChannelMapper.Map).ToDictionary(x => x.Id),
+            Emojis = guild.Emojis.Values.Select(DiscordEmojiMapper.Map).ToDictionary(x => x.Id),
         };
 
         return appGuild;

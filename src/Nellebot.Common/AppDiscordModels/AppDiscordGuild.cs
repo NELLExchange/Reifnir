@@ -11,4 +11,6 @@ public class AppDiscordGuild
     public required IReadOnlyDictionary<ulong, AppDiscordRole> Roles { get; init; }
 
     public required IReadOnlyDictionary<ulong, AppDiscordChannel> Channels { get; init; }
+
+    public required IReadOnlyDictionary<ulong, AppDiscordEmoji> Emojis { get; init; }
 }
