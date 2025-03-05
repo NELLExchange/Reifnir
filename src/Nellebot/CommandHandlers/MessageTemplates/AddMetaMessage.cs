@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,15 +22,26 @@ public record AddMetaMessageCommand : BotSlashCommand
         Channel = channel;
     }
 
+    public AddMetaMessageCommand(SlashCommandContext ctx, DiscordChannel channel, DiscordMessage targetMessage)
+        : base(ctx)
+    {
+        Channel = channel;
+        TargetMessage = targetMessage;
+    }
+
     public DiscordChannel Channel { get; }
+
+    public DiscordMessage? TargetMessage { get; set; }
 }
 
 public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
 {
     private const string ModalTextInputId = "modal-text-input";
+    private const int FollowupMessageDelayMs = 500;
 
     private readonly InteractivityExtension _interactivityExtension;
     private readonly DiscordLogger _discordLogger;
+    private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly DiscordResolver _discordResolver;
     private readonly BotOptions _options;
 
@@ -37,10 +49,12 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
         IOptions<BotOptions> options,
         InteractivityExtension interactivityExtension,
         DiscordLogger discordLogger,
+        IDiscordErrorLogger discordErrorLogger,
         DiscordResolver discordResolver)
     {
         _interactivityExtension = interactivityExtension;
         _discordLogger = discordLogger;
+        _discordErrorLogger = discordErrorLogger;
         _discordResolver = discordResolver;
         _options = options.Value;
     }
@@ -48,6 +62,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
     public async Task Handle(AddMetaMessageCommand request, CancellationToken cancellationToken)
     {
         SlashCommandContext ctx = request.Ctx;
+        DiscordMessage? targetMessage = request.TargetMessage;
 
         if (!_options.MetaChannelIds.Contains(request.Channel.Id))
         {
@@ -74,29 +89,107 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
 
             string encodedMessageText = DiscordMentionEncoder.EncodeMentions(guild, addMessageText);
 
-            DiscordMessage sentMessage = await request.Channel.SendSuppressedMessageAsync(encodedMessageText);
+            DiscordMessage addedMessage = await request.Channel.SendSuppressedMessageAsync(encodedMessageText);
 
-            DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
-                                              ?? throw new InteractionException(
-                                                  modalInteraction,
-                                                  "Interaction author is not a member!");
+            LogActivityMessage(request, modalInteraction, encodedMessageText);
 
-            var activityMessageText =
-                $"Meta message added in {request.Channel.Mention} by {interactionAuthor.Mention}";
-            DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
-                .WithContent(activityMessageText)
-                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(encodedMessageText));
-            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
+            var followupMessageText = $"Message added successfully! [Jump to message]({addedMessage.JumpLink})";
+            DiscordMessage followupMessage = await SendFollowupMessageAsync(modalInteraction, followupMessageText);
 
-            DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
-                .WithContent($"Message added successfully! [Jump to message]({sentMessage.JumpLink})").AsEphemeral();
-            await modalInteraction.CreateFollowupMessageAsync(followupBuilder);
+            if (targetMessage is not null)
+            {
+                await MoveMessagesAfter(
+                    targetMessage,
+                    followupMessage,
+                    modalInteraction,
+                    addedMessage.Id,
+                    ctx.Client.CurrentUser.Id,
+                    cancellationToken);
+            }
         }
         catch (Exception ex)
         {
             var errorMessage = $"Failed to add message: {ex.Message}";
             throw new InteractionException(modalInteraction, errorMessage, ex);
         }
+    }
+
+    private static async Task MoveMessagesAfter(
+        DiscordMessage targetMessage,
+        DiscordMessage followupMessage,
+        DiscordInteraction modalInteraction,
+        ulong addedMessageId,
+        ulong botUserId,
+        CancellationToken cancellationToken)
+    {
+        DiscordChannel channel = targetMessage.Channel
+                                 ?? throw new InvalidOperationException("Channel of targetMessage was null!");
+
+        var messagesAfter = new List<DiscordMessage>();
+
+        await foreach (DiscordMessage message in channel.GetMessagesAfterAsync(
+                           targetMessage.Id,
+                           limit: 20,
+                           cancellationToken))
+        {
+            // If we've reached (or somehow passed) the newly added message, stop moving messages
+            if (message.Id >= addedMessageId)
+                break;
+
+            // Skip messages not sent by the bot
+            if (message.Author is null || message.Author.Id != botUserId)
+                continue;
+
+            messagesAfter.Add(message);
+        }
+
+        if (messagesAfter.Count == 0)
+            return;
+
+        // Add a small delay to give the user time to read the followup message,
+        // otherwise it looks pretty gnarly when the messages start moving
+        await Task.Delay(FollowupMessageDelayMs, cancellationToken);
+
+        var pleaseWaitText = $"\nMoving {messagesAfter.Count} message(s) after the target message. Please wait...";
+        DiscordMessage pleaseWaitMessage =
+            await AppendToFollowupMessageAsync(modalInteraction, followupMessage, pleaseWaitText);
+
+        await Task.Delay(FollowupMessageDelayMs, cancellationToken);
+        foreach (DiscordMessage message in messagesAfter)
+        {
+            // Re-send the message
+            await channel.SendSuppressedMessageAsync(message.Content);
+
+            // Delete the original message
+            await channel.DeleteMessageAsync(message, "Moved");
+        }
+
+        await Task.Delay(FollowupMessageDelayMs, cancellationToken);
+        await AppendToFollowupMessageAsync(modalInteraction, pleaseWaitMessage, "\nDone!");
+    }
+
+    private static async Task<DiscordMessage> SendFollowupMessageAsync(
+        DiscordInteraction modalInteraction,
+        string followupMessageText)
+    {
+        DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
+            .WithContent(followupMessageText)
+            .AsEphemeral();
+
+        return await modalInteraction.CreateFollowupMessageAsync(followupBuilder);
+    }
+
+    private static async Task<DiscordMessage> AppendToFollowupMessageAsync(
+        DiscordInteraction modalInteraction,
+        DiscordMessage followupMessage,
+        string followupMessageText)
+    {
+        var newFollowupMessageText = $"{followupMessage.Content}\n{followupMessageText}";
+
+        DiscordWebhookBuilder followupBuilder = new DiscordWebhookBuilder()
+            .WithContent(newFollowupMessageText);
+
+        return await modalInteraction.EditFollowupMessageAsync(followupMessage.Id, followupBuilder);
     }
 
     private async Task<ModalSubmittedEventArgs> ShowAddMessageModal(SlashCommandContext ctx)
@@ -123,5 +216,30 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
             await _interactivityExtension.WaitForModalAsync(modalId, DiscordConstants.MaxDeferredInteractionWait);
 
         return modalSubmission.Result;
+    }
+
+    private void LogActivityMessage(
+        AddMetaMessageCommand request,
+        DiscordInteraction modalInteraction,
+        string encodedMessageText)
+    {
+        try
+        {
+            DiscordMember interactionAuthor = modalInteraction.User as DiscordMember
+                                              ?? throw new InteractionException(
+                                                  modalInteraction,
+                                                  "Interaction author is not a member!");
+
+            var activityMessageText =
+                $"Meta message added in {request.Channel.Mention} by {interactionAuthor.Mention}";
+            DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
+                .WithContent(activityMessageText)
+                .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(encodedMessageText));
+            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
+        }
+        catch (Exception ex)
+        {
+            _discordErrorLogger.LogError(ex, "Failed to log activity message for add meta message command");
+        }
     }
 }
