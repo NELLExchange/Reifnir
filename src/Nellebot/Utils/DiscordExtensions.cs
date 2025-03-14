@@ -67,4 +67,32 @@ public static class DiscordExtensions
         return attachment.MediaType?.StartsWith("image")
                ?? imageExtensions.Any(ext => (attachment.FileName ?? string.Empty).EndsWith($".{ext}"));
     }
+
+    public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, string content)
+    {
+        return channel.SendMessageAsync(
+            x => { x.WithContent(content).SuppressNotifications(); });
+    }
+
+    public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, DiscordEmbed embed)
+    {
+        return channel.SendMessageAsync(
+            x => { x.AddEmbed(embed).SuppressNotifications(); });
+    }
+
+    public static Task<DiscordMessage> SendSuppressedMessageAsync(
+        this DiscordChannel channel,
+        string content,
+        DiscordEmbed embed)
+    {
+        return channel.SendMessageAsync(
+            x => { x.WithContent(content).AddEmbed(embed).SuppressNotifications(); });
+    }
+
+    public static Task<DiscordMessage> SendSuppressedMessageAsync(
+        this DiscordChannel channel,
+        DiscordMessageBuilder builder)
+    {
+        return channel.SendMessageAsync(builder.SuppressNotifications());
+    }
 }

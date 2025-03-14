@@ -13,12 +13,12 @@ public static class DiscordMessageMapper
             CreationTimestamp = discordMessage.CreationTimestamp,
         };
 
-        if (discordMessage.Author != null)
+        if (discordMessage.Author is not null)
         {
             appDiscordMessage.Author = DiscordUserMapper.Map(discordMessage.Author);
         }
 
-        if (discordMessage.Channel != null)
+        if (discordMessage.Channel is not null)
         {
             appDiscordMessage.Channel = DiscordChannelMapper.Map(discordMessage.Channel);
         }

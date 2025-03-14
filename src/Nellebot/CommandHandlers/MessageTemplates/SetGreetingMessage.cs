@@ -5,7 +5,7 @@ using DSharpPlus.Commands;
 using MediatR;
 using Nellebot.Services;
 
-namespace Nellebot.CommandHandlers;
+namespace Nellebot.CommandHandlers.MessageTemplates;
 
 public record SetGreetingMessageCommand : BotCommandCommand
 {
@@ -15,7 +15,7 @@ public record SetGreetingMessageCommand : BotCommandCommand
         GreetingMessage = greetingMessage;
     }
 
-    public string GreetingMessage { get; set; }
+    public string GreetingMessage { get; }
 }
 
 public class SetGreetingMessageHandler : IRequestHandler<SetGreetingMessageCommand>

@@ -58,9 +58,13 @@ public class EventQueueChannel : AbstractQueueChannel<INotification>
     { }
 }
 
-public record BaseDiscordLogItem(ulong DiscordGuildId, ulong DiscordChannelId);
+public record BaseDiscordLogItem(ulong DiscordGuildId, ulong DiscordChannelId, bool SuppressNotifications = false);
 
-public record DiscordLogItem<T>(T Message, ulong DiscordGuildId, ulong DiscordChannelId)
+public record DiscordLogItem<T>(
+    T Message,
+    ulong DiscordGuildId,
+    ulong DiscordChannelId,
+    bool SuppressNotifications = false)
     : BaseDiscordLogItem(DiscordGuildId, DiscordChannelId);
 
 public class DiscordLogChannel : AbstractQueueChannel<BaseDiscordLogItem>

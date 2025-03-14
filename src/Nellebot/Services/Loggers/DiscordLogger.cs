@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DSharpPlus.Entities;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nellebot.Workers;
 
@@ -24,12 +25,17 @@ public class DiscordLogger
 
     public void LogActivityMessage(string message)
     {
-        LogMessageCore(message, _options.ActivityLogChannelId);
+        LogMessageCore(message, _options.ActivityLogChannelId, suppressNotifications: true);
     }
 
     public void LogExtendedActivityMessage(string message)
     {
-        LogMessageCore(message, _options.ExtendedActivityLogChannelId);
+        LogMessageCore(message, _options.ExtendedActivityLogChannelId, suppressNotifications: true);
+    }
+
+    public void LogExtendedActivityMessage(DiscordMessageBuilder message)
+    {
+        LogMessageCore(message, _options.ExtendedActivityLogChannelId, suppressNotifications: true);
     }
 
     public void LogTrustedChannelMessage(string message)
@@ -37,14 +43,27 @@ public class DiscordLogger
         LogMessageCore(message, _options.TrustedChannelId);
     }
 
-    private void LogMessageCore(string message, ulong channelId)
+    private void LogMessageCore(string message, ulong channelId, bool suppressNotifications = false)
     {
         ulong guildId = _options.GuildId;
 
-        var discordLogItem = new DiscordLogItem<string>(message, guildId, channelId);
+        var discordLogItem = new DiscordLogItem<string>(message, guildId, channelId, suppressNotifications);
 
-        bool sucess = _channel.Writer.TryWrite(discordLogItem);
+        if (!_channel.Writer.TryWrite(discordLogItem))
+            _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);
+    }
 
-        if (!sucess) _logger.LogError("Could not write to DiscordLogChannel");
+    private void LogMessageCore(DiscordMessageBuilder message, ulong channelId, bool suppressNotifications = false)
+    {
+        ulong guildId = _options.GuildId;
+
+        var discordLogItem = new DiscordLogItem<DiscordMessageBuilder>(
+            message,
+            guildId,
+            channelId,
+            suppressNotifications);
+
+        if (!_channel.Writer.TryWrite(discordLogItem))
+            _logger.LogError("Could not write to DiscordLogChannel. Message: {message}", message);
     }
 }

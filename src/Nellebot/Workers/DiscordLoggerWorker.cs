@@ -6,6 +6,7 @@ using DSharpPlus.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nellebot.Utils;
 
 namespace Nellebot.Workers;
 
@@ -41,10 +42,22 @@ public class DiscordLoggerWorker : BackgroundService
                     switch (logItem)
                     {
                         case DiscordLogItem<string> discordLogItem:
-                            await logChannel.SendMessageAsync(discordLogItem.Message);
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
-                        case DiscordLogItem<DiscordEmbed> discordEmbedLogItem:
-                            await logChannel.SendMessageAsync(discordEmbedLogItem.Message);
+                        case DiscordLogItem<DiscordEmbed> discordLogItem:
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
+                            break;
+                        case DiscordLogItem<DiscordMessageBuilder> discordLogItem:
+                            if (discordLogItem.SuppressNotifications)
+                                await logChannel.SendSuppressedMessageAsync(discordLogItem.Message);
+                            else
+                                await logChannel.SendMessageAsync(discordLogItem.Message);
                             break;
                         default:
                             throw new NotImplementedException();
@@ -80,12 +93,12 @@ public class DiscordLoggerWorker : BackgroundService
 
             ArgumentNullException.ThrowIfNull(errorLogChannel);
 
-            await errorLogChannel.SendMessageAsync(
+            await errorLogChannel.SendSuppressedMessageAsync(
                 $"Failed to log original error message. Reason: {exception.Message}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Welp");
+            _logger.LogCritical(ex, "Welp");
         }
     }
 
@@ -100,6 +113,6 @@ public class DiscordLoggerWorker : BackgroundService
 
         discordGuild.Channels.TryGetValue(channelId, out DiscordChannel? discordChannel);
 
-        return discordChannel ??= await discordGuild.GetChannelAsync(channelId);
+        return discordChannel ?? await discordGuild.GetChannelAsync(channelId);
     }
 }

@@ -5,6 +5,7 @@ services:
     build:
       context: ..
       dockerfile: src/Nellebot/Dockerfile
+    tty: true
     environment:
       - DOTNET_ENVIRONMENT=Development
     env_file: .env.local
