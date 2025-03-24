@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <UserSecretsId>dotnet-Nellebot-A35E98EA-550A-4966-AD77-530BC4395F56</UserSecretsId>
@@ -25,7 +25,7 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
-        <PackageReference Include="PuppeteerSharp" Version="10.1.4" />
+        <PackageReference Include="PuppeteerSharp" Version="19.0.2" />
         <PackageReference Include="Quartz" Version="3.13.1" />
         <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.13.1" />
         <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
