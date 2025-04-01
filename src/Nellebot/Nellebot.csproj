@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <UserSecretsId>dotnet-Nellebot-A35E98EA-550A-4966-AD77-530BC4395F56</UserSecretsId>
@@ -18,7 +18,7 @@
         <PackageReference Include="DSharpPlus" Version="5.0.0-alpha.5" />
         <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-alpha.5" />
         <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-alpha.5" />
-        <PackageReference Include="MediatR" Version="12.4.1" />
+        <PackageReference Include="MediatR" Version="12.5.0" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="8.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.8" />
         <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.1" />
@@ -26,9 +26,9 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
         <PackageReference Include="PuppeteerSharp" Version="10.1.4" />
-        <PackageReference Include="Quartz" Version="3.13.1" />
-        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.13.1" />
-        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
+        <PackageReference Include="Quartz" Version="3.14.0" />
+        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.14.0" />
+        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.14.0" />
         <PackageReference Include="Scriban" Version="5.12.1" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
             <PrivateAssets>all</PrivateAssets>
