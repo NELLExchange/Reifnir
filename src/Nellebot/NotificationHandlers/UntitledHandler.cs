@@ -43,12 +43,7 @@ public class UntitledHandler : INotificationHandler<MessageCreatedNotification>,
 
         if (args.Channel.Id == seventeenThreadId)
         {
-            string messageContent = args.Message.Content;
-
-            if (Seventeen.IsMatch(messageContent))
-            {
-                await args.Message.DeleteAsync();
-            }
+            await args.Message.DeleteAsync();
         }
 
         await _messageRefRepo.CreateMessageRef(args.Message.Id, args.Channel.Id, args.Author.Id);
