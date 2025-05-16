@@ -26,7 +26,7 @@ public class UntitledHandler : INotificationHandler<MessageCreatedNotification>,
         {
             string messageContent = args.Message.Content;
 
-            if (Seventeen.IsMatch(messageContent))
+            if (Seventeen.IsDissallowed(messageContent))
             {
                 await args.Message.DeleteAsync();
             }
@@ -43,7 +43,12 @@ public class UntitledHandler : INotificationHandler<MessageCreatedNotification>,
 
         if (args.Channel.Id == seventeenThreadId)
         {
-            await args.Message.DeleteAsync();
+            string messageContent = args.Message.Content;
+
+            if (Seventeen.IsDissallowed(messageContent))
+            {
+                await args.Message.DeleteAsync();
+            }
         }
 
         await _messageRefRepo.CreateMessageRef(args.Message.Id, args.Channel.Id, args.Author.Id);
