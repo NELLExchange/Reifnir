@@ -15,10 +15,22 @@ public class UntitledHandler : INotificationHandler<MessageCreatedNotification>
         _messageRefRepo = messageRefRepo;
     }
 
-    public Task Handle(MessageCreatedNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(MessageCreatedNotification notification, CancellationToken cancellationToken)
     {
         MessageCreatedEventArgs args = notification.EventArgs;
 
-        return _messageRefRepo.CreateMessageRef(args.Message.Id, args.Channel.Id, args.Author.Id);
+        const ulong seventeenThreadId = 1151798901750378607;
+
+        if (args.Channel.Id == seventeenThreadId)
+        {
+            string messageContent = args.Message.Content;
+
+            if (Seventeen.IsMatch(messageContent))
+            {
+                await args.Message.DeleteAsync();
+            }
+        }
+
+        await _messageRefRepo.CreateMessageRef(args.Message.Id, args.Channel.Id, args.Author.Id);
     }
 }
