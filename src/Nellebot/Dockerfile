@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS base
 RUN mkdir /keydata && \
     chown $APP_UID:$APP_UID /keydata
     
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Debug
 RUN mkdir /keydata && \
     chown $APP_UID:$APP_UID /keydata

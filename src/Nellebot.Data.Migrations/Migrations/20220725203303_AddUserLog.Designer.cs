@@ -131,9 +131,7 @@ namespace Nellebot.Data.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "LogType", "Timestamp");
-
-                    NpgsqlIndexBuilderExtensions.HasSortOrder(b.HasIndex("UserId", "LogType", "Timestamp"), new[] { SortOrder.Ascending, SortOrder.Ascending, SortOrder.Descending });
+                    b.HasIndex("UserId", "LogType", "Timestamp").IsDescending(false, false, true);
 
                     b.ToTable("UserLogs");
                 });
