@@ -199,7 +199,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle("Add a message")
             .WithCustomId(modalId)
-            .AddComponents(
+            .AddTextInputComponent(
                 new DiscordTextInputComponent(
                     "Message",
                     ModalTextInputId,

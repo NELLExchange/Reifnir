@@ -77,7 +77,7 @@ public class AwardStatsModule
         // Library does not support nullable reference types.
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         DiscordEmbedBuilder embedBuilder = new DiscordEmbedBuilder()
-            .WithAuthor(mention, null, member.GuildAvatarUrl ?? member.AvatarUrl)
+            .WithAuthor(mention, url: null, member.GuildAvatarUrl ?? member.AvatarUrl)
             .WithTitle("Cookie stats")
             .WithColor(DiscordConstants.DefaultEmbedColor);
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -121,7 +121,7 @@ public class AwardStatsModule
                 DiscordMessage message = messageResolveResult.Value;
 
                 string shortenedMessage = message.Content.Length > MaxMessageLength
-                    ? $"{message.Content.Substring(0, MaxMessageLength)}..."
+                    ? $"{message.Content.Substring(startIndex: 0, MaxMessageLength)}..."
                     : message.Content;
 
                 if (string.IsNullOrWhiteSpace(shortenedMessage))

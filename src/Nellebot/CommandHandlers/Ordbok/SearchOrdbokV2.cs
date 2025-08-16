@@ -22,7 +22,8 @@ public record SearchOrdbokQueryV2 : BotSlashCommand
 {
     public SearchOrdbokQueryV2(SlashCommandContext ctx)
         : base(ctx)
-    { }
+    {
+    }
 
     public string Query { get; init; } = string.Empty;
 
@@ -85,10 +86,9 @@ public class SearchOrdbokHandlerV2 : IRequestHandler<SearchOrdbokQueryV2>
         IEnumerable<Page> messagePages = await BuildPages(articles, title, queryUrl);
 
         await ctx.Interaction.SendPaginatedResponseAsync(
-            false,
+            ephemeral: false,
             user,
             messagePages,
-            asEditResponse: true,
             token: cancellationToken);
     }
 

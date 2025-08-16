@@ -42,7 +42,7 @@ if (configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
 
         dataProtectionBuilder
             .PersistKeysToFileSystem(new DirectoryInfo(keyDataDir))
-            .ProtectKeysWithCertificate(new X509Certificate2(certPath, password));
+            .ProtectKeysWithCertificate(X509CertificateLoader.LoadPkcs12FromFile(certPath, password));
     }
     catch (Exception e) when (allowUnprotectedKeyData)
     {
@@ -52,12 +52,11 @@ if (configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
 
 services.AddHttpClient<OrdbokHttpClient>();
 
-services.AddMediatR(
-    cfg =>
-    {
-        cfg.RegisterServicesFromAssemblyContaining<Program>();
-        cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CommandRequestPipelineBehaviour<,>));
-    });
+services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<Program>();
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CommandRequestPipelineBehaviour<,>));
+});
 services.AddTransient<NotificationPublisher>();
 
 services.AddSingleton<SharedCache>();

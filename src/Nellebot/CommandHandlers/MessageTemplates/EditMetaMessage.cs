@@ -119,7 +119,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
         DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
             .WithTitle(title: "Edit the message")
             .WithCustomId(modalId)
-            .AddComponents(
+            .AddTextInputComponent(
                 new DiscordTextInputComponent(
                     "Message",
                     ModalTextInputId,

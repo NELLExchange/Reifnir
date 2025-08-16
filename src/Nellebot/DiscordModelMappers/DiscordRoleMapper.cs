@@ -11,7 +11,7 @@ public static class DiscordRoleMapper
         {
             Id = discordRole.Id,
             Name = discordRole.Name,
-            HasAdminPermission = discordRole.Permissions.HasPermission(DiscordPermissions.Administrator),
+            HasAdminPermission = discordRole.Permissions.HasPermission(DiscordPermission.AddReactions),
         };
 
         return appDiscordRole;

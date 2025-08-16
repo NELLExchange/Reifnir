@@ -75,7 +75,7 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
 
         if (choice == CancelButtonId)
         {
-            await HandleCancellation(member, null, cancellationToken);
+            await HandleCancellation(member, stub: null, cancellationToken);
 
             return;
         }
@@ -136,9 +136,9 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
         await messageToRelay.CreateSuccessReactionAsync();
 
         var ticketCreateMessage = """
-                                  Thanks! A staff member will get back to you soon.
-                                  If there is something you wish to add do so by sending a new message as I won't be checking for updates to your messages.
-                                  """;
+            Thanks! A staff member will get back to you soon.
+            If there is something you wish to add do so by sending a new message as I won't be checking for updates to your messages.
+            """;
 
         await member.SendMessageAsync(ticketCreateMessage);
     }
@@ -172,10 +172,10 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
     private static async Task<bool> CollectRequestMessageConfirmation(DiscordMessage message, DiscordMember member)
     {
         var messageContent = $"""
-                              The following message will be sent to the moderators.
-                              {message.GetQuotedContent()}
-                              Please react with {EmojiMap.WhiteCheckmark} to confirm or {EmojiMap.RedX} to cancel.
-                              """;
+            The following message will be sent to the moderators.
+            {message.GetQuotedContent()}
+            Please react with {EmojiMap.WhiteCheckmark} to confirm or {EmojiMap.RedX} to cancel.
+            """;
 
         DiscordMessage promptForConfirmMessage = await member.SendMessageAsync(messageContent);
 
@@ -207,9 +207,9 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
         string realName = member.DisplayName;
 
         var introMessageContent = $"""
-                                   Hello and welcome to Modmail!
-                                   Would you like to send the message as **{realName}** or do you want to use a random pseudonym?
-                                   """;
+            Hello and welcome to Modmail!
+            Would you like to send the message as **{realName}** or do you want to use a random pseudonym?
+            """;
 
         var realNameButton = new DiscordButtonComponent(DiscordButtonStyle.Primary, RealNameButtonId, realName);
         var pseudonymButton = new DiscordButtonComponent(
@@ -220,7 +220,7 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
 
         DiscordMessageBuilder introMessageBuilder = new DiscordMessageBuilder()
             .WithContent(introMessageContent)
-            .AddComponents(realNameButton, pseudonymButton, cancelButton);
+            .AddActionRowComponent(realNameButton, pseudonymButton, cancelButton);
 
         DiscordMessage introMessage = await member.SendMessageAsync(introMessageBuilder);
 
@@ -287,9 +287,9 @@ public class RequestModmailTicketHandler : IRequestHandler<RequestModmailTicketC
             : $"Ticket from server member {ticket.RequesterDisplayName}";
 
         var relayMessageContent = $"""
-                                   {ticket.RequesterDisplayName} says
-                                   {requestMesage.GetQuotedContent()}
-                                   """;
+            {ticket.RequesterDisplayName} says
+            {requestMesage.GetQuotedContent()}
+            """;
 
         DiscordMessageBuilder modmailPostMessage = new DiscordMessageBuilder()
             .WithContent(relayMessageContent);

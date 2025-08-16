@@ -33,7 +33,7 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
     {
         try
         {
-            return await next().ConfigureAwait(false);
+            return await next(cancellationToken).ConfigureAwait(false);
         }
         catch (InteractionException ex) when (request is BotCommandCommand commandCommand)
         {
@@ -92,11 +92,11 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
 
         if (ctx.Interaction.ResponseState is DiscordInteractionResponseState.Unacknowledged)
         {
-            await ctx.RespondAsync(ex.Message, true);
+            await ctx.RespondAsync(ex.Message, ephemeral: true);
         }
         else
         {
-            await ctx.FollowupAsync(ex.Message, true);
+            await ctx.FollowupAsync(ex.Message, ephemeral: true);
         }
 
         _discordErrorLogger.LogCommandError(ctx, ex.ToString());
@@ -116,14 +116,13 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
             }
             else
             {
-                await slashCtx.FollowupAsync(ex.Message, true);
+                await slashCtx.FollowupAsync(ex.Message, ephemeral: true);
             }
         }
         else
         {
             await ctx.RespondAsync(ex.Message);
         }
-
 
         _discordErrorLogger.LogCommandError(ctx, ex.ToString());
 

@@ -7,7 +7,7 @@ using DSharpPlus.Commands.ContextChecks;
 using DSharpPlus.Commands.EventArgs;
 using DSharpPlus.Commands.Exceptions;
 using DSharpPlus.Commands.Processors.SlashCommands;
-using DSharpPlus.Commands.Processors.SlashCommands.NamingPolicies;
+using DSharpPlus.Commands.Processors.SlashCommands.InteractionNamingPolicies;
 using DSharpPlus.Commands.Processors.TextCommands;
 using DSharpPlus.Commands.Processors.TextCommands.Parsing;
 using DSharpPlus.Entities;
@@ -94,16 +94,17 @@ public static class ServiceCollectionExtensions
                 commands.AddCommands(typeof(Program).Assembly, guildId);
 
                 var textCommandProcessor = new TextCommandProcessor(
-                    new TextCommandConfiguration()
+                    new TextCommandConfiguration
                     {
                         IgnoreBots = true,
-                        PrefixResolver = new DefaultPrefixResolver(false, commandPrefix).ResolvePrefixAsync,
+                        PrefixResolver = new DefaultPrefixResolver(allowMention: false, commandPrefix)
+                            .ResolvePrefixAsync,
                     });
 
                 commands.AddProcessor(textCommandProcessor);
 
                 var slashCommandProcessor = new SlashCommandProcessor(
-                    new SlashCommandConfiguration()
+                    new SlashCommandConfiguration
                     {
                         NamingPolicy = new KebabCaseNamingPolicy(),
                     });
@@ -120,61 +121,43 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterEventHandlers(this DiscordClientBuilder builder)
     {
-        builder.ConfigureEventHandlers(
-            cfg =>
-            {
-                cfg.HandleSocketOpened(
-                    (client, args) =>
-                        client.WriteNotification(new ClientConnected(args)));
-                cfg.HandleSocketClosed(
-                    (client, args) =>
-                        client.WriteNotification(new ClientDisconnected(args)));
-                cfg.HandleSessionCreated(
-                    (client, _) =>
-                        client.WriteNotification(new SessionCreatedNotification()));
-                cfg.HandleSessionResumed(
-                    (client, _) =>
-                        client.WriteNotification(new SessionResumedOrDownloadCompletedNotification("SessionResumed")));
-                cfg.HandleGuildDownloadCompleted(
-                    (client, _) =>
-                        client.WriteNotification(
-                            new SessionResumedOrDownloadCompletedNotification("GuildDownloadCompleted")));
+        builder.ConfigureEventHandlers(cfg =>
+        {
+            cfg.HandleSocketOpened((client, args) =>
+                client.WriteNotification(new ClientConnected(args)));
+            cfg.HandleSocketClosed((client, args) =>
+                client.WriteNotification(new ClientDisconnected(args)));
+            cfg.HandleSessionCreated((client, _) =>
+                client.WriteNotification(new SessionCreatedNotification()));
+            cfg.HandleSessionResumed((client, _) =>
+                client.WriteNotification(new SessionResumedOrDownloadCompletedNotification("SessionResumed")));
+            cfg.HandleGuildDownloadCompleted((client, _) =>
+                client.WriteNotification(new SessionResumedOrDownloadCompletedNotification("GuildDownloadCompleted")));
 
-                cfg.HandleMessageCreated(
-                    (client, args) =>
-                        client.WriteNotification(new MessageCreatedNotification(args)));
-                cfg.HandleMessageUpdated(
-                    (client, args) =>
-                        client.WriteNotification(new MessageUpdatedNotification(args)));
-                cfg.HandleMessageDeleted(
-                    (client, args) =>
-                        client.WriteNotification(new MessageDeletedNotification(args)));
-                cfg.HandleMessagesBulkDeleted(
-                    (client, args) =>
-                        client.WriteNotification(new MessageBulkDeletedNotification(args)));
-                cfg.HandleMessageReactionAdded(
-                    (client, args) =>
-                        client.WriteNotification(new MessageReactionAddedNotification(args)));
-                cfg.HandleMessageReactionRemoved(
-                    (client, args) =>
-                        client.WriteNotification(new MessageReactionRemovedNotification(args)));
+            cfg.HandleMessageCreated((client, args) =>
+                client.WriteNotification(new MessageCreatedNotification(args)));
+            cfg.HandleMessageUpdated((client, args) =>
+                client.WriteNotification(new MessageUpdatedNotification(args)));
+            cfg.HandleMessageDeleted((client, args) =>
+                client.WriteNotification(new MessageDeletedNotification(args)));
+            cfg.HandleMessagesBulkDeleted((client, args) =>
+                client.WriteNotification(new MessageBulkDeletedNotification(args)));
+            cfg.HandleMessageReactionAdded((client, args) =>
+                client.WriteNotification(new MessageReactionAddedNotification(args)));
+            cfg.HandleMessageReactionRemoved((client, args) =>
+                client.WriteNotification(new MessageReactionRemovedNotification(args)));
 
-                cfg.HandleGuildMemberAdded(
-                    (client, args) =>
-                        client.WriteNotification(new GuildMemberAddedNotification(args)));
-                cfg.HandleGuildMemberRemoved(
-                    (client, args) =>
-                        client.WriteNotification(new GuildMemberRemovedNotification(args)));
-                cfg.HandleGuildMemberUpdated(
-                    (client, args) =>
-                        client.WriteNotification(new GuildMemberUpdatedNotification(args)));
-                cfg.HandleGuildBanAdded(
-                    (client, args) =>
-                        client.WriteNotification(new GuildBanAddedNotification(args)));
-                cfg.HandleGuildBanRemoved(
-                    (client, args) =>
-                        client.WriteNotification(new GuildBanRemovedNotification(args)));
-            });
+            cfg.HandleGuildMemberAdded((client, args) =>
+                client.WriteNotification(new GuildMemberAddedNotification(args)));
+            cfg.HandleGuildMemberRemoved((client, args) =>
+                client.WriteNotification(new GuildMemberRemovedNotification(args)));
+            cfg.HandleGuildMemberUpdated((client, args) =>
+                client.WriteNotification(new GuildMemberUpdatedNotification(args)));
+            cfg.HandleGuildBanAdded((client, args) =>
+                client.WriteNotification(new GuildBanAddedNotification(args)));
+            cfg.HandleGuildBanRemoved((client, args) =>
+                client.WriteNotification(new GuildBanRemovedNotification(args)));
+        });
     }
 
     private static async Task WriteNotification<T>(this DiscordClient client, T notification)

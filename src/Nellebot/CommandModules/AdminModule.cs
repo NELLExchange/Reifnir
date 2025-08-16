@@ -16,7 +16,7 @@ using Nellebot.Workers;
 namespace Nellebot.CommandModules;
 
 [BaseCommandCheck]
-[RequirePermissions(DiscordPermissions.None, UserPermissions = DiscordPermissions.Administrator)]
+[RequirePermissions([], [DiscordPermission.Administrator])]
 [Command("admin")]
 public class AdminModule
 {
@@ -39,7 +39,7 @@ public class AdminModule
         // TODO implement a more general way to respond to commands
         if (ctx is SlashCommandContext slashCtx)
         {
-            await slashCtx.RespondAsync("Nickname changed", true);
+            await slashCtx.RespondAsync("Nickname changed", ephemeral: true);
         }
     }
 
@@ -63,7 +63,7 @@ public class AdminModule
         DiscordChannel channel = await ctx.Guild.GetChannelAsync(channelId);
 
         var messagesToDelete = new List<DiscordMessage>();
-        await foreach (DiscordMessage m in channel.GetMessagesAfterAsync(messageId, 1000))
+        await foreach (DiscordMessage m in channel.GetMessagesAfterAsync(messageId, limit: 1000))
         {
             messagesToDelete.Add(m);
         }
@@ -88,7 +88,7 @@ public class AdminModule
     [Command("dry-run-job")]
     public Task DryRunJob(CommandContext ctx, string jobName)
     {
-        return _commandQueue.Writer.WriteAsync(new RunJobCommand(ctx, jobName, true)).AsTask();
+        return _commandQueue.Writer.WriteAsync(new RunJobCommand(ctx, jobName, dryRun: true)).AsTask();
     }
 
     [Command("cancel-job")]
