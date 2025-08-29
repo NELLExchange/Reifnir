@@ -233,17 +233,6 @@ jobs:
         env:
           PACKAGE_INFO: ${{ steps.package-info.outputs.result_json_output }}
 
-      - name: Build changelog PRs
-        id: build-pr-changelog
-        uses: selfdocumentingcode/pr-release-changelog-builder-action@1.0.0-beta6
-        with:
-          configuration: ./.config/changelog-builder.json
-          mode: HYBRID
-          owner: ${{ github.repository_owner }}
-          repo: ${{ env.REPOSITORY_NAME }}
-          toTag: ${{ env.COMMIT_SHA }}
-          failOnError: true
-
       - name: Check if commit exists on current branch
         id: check_commit
         run: |
@@ -270,6 +259,7 @@ jobs:
               && sudo apt update -q \
               && sudo apt install gh -y
           
+      # Generate a token with "create release" permission (the default token has no such permission)
       - uses: actions/create-github-app-token@v1
         id: app-token
         with:
@@ -281,12 +271,9 @@ jobs:
           gh release create $SEMVER_TAG \
           --target $COMMIT_SHA \
           --title $SEMVER_TAG \
-          --notes "$NOTES" \
-          --draft \
           --repo $REPOSITORY
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPOSITORY: ${{ github.repository }}
           SEMVER_TAG: ${{ env.SEMVER_TAG }}
           COMMIT_SHA: ${{ env.COMMIT_SHA }}
-          NOTES: ${{steps.build-pr-changelog.outputs.changelog}}
