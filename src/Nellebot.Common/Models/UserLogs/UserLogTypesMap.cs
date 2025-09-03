@@ -12,5 +12,7 @@ public static class UserLogTypesMap
         { UserLogType.NicknameChange, typeof(string) },
         { UserLogType.JoinedServer, typeof(DateTime) },
         { UserLogType.LeftServer, typeof(DateTime) },
+        { UserLogType.Quarantined, typeof(string) },
+        { UserLogType.Unquarantined, typeof(string) },
     };
 }

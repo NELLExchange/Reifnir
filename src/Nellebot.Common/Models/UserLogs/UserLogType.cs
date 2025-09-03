@@ -7,4 +7,6 @@ public enum UserLogType
     NicknameChange = 2,
     JoinedServer = 5,
     LeftServer = 6,
+    Quarantined = 7,
+    Unquarantined = 8,
 }
