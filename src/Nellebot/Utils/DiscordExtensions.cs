@@ -70,14 +70,12 @@ public static class DiscordExtensions
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, string content)
     {
-        return channel.SendMessageAsync(
-            x => { x.WithContent(content).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.WithContent(content).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, DiscordEmbed embed)
     {
-        return channel.SendMessageAsync(
-            x => { x.AddEmbed(embed).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.AddEmbed(embed).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(
@@ -85,8 +83,7 @@ public static class DiscordExtensions
         string content,
         DiscordEmbed embed)
     {
-        return channel.SendMessageAsync(
-            x => { x.WithContent(content).AddEmbed(embed).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.WithContent(content).AddEmbed(embed).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(
@@ -94,5 +91,10 @@ public static class DiscordExtensions
         DiscordMessageBuilder builder)
     {
         return channel.SendMessageAsync(builder.SuppressNotifications());
+    }
+
+    public static bool IsUserAssignable(this DiscordRole role)
+    {
+        return role.Flags.HasFlag(DiscordRoleFlags.InPrompt);
     }
 }
