@@ -10,8 +10,6 @@ public static class UserLogTypesMap
         { UserLogType.Unknown, typeof(object) },
         { UserLogType.UsernameChange, typeof(string) },
         { UserLogType.NicknameChange, typeof(string) },
-        { UserLogType.AvatarHashChange, typeof(string) },
-        { UserLogType.GuildAvatarHashChange, typeof(string) },
         { UserLogType.JoinedServer, typeof(DateTime) },
         { UserLogType.LeftServer, typeof(DateTime) },
     };
