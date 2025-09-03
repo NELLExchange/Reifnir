@@ -48,6 +48,7 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         ulong[] memberRoleIds = _options.MemberRoleIds;
         ulong memberRoleId = _options.MemberRoleId;
         ulong ghostRoleId = _options.GhostRoleId;
+        ulong quarantineRoleId = _options.QuarantineRoleId;
 
         DiscordMember? member = notification.EventArgs.Member;
 
@@ -55,34 +56,46 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
 
         DiscordGuild guild = notification.EventArgs.Guild;
 
-        await EnsureMemberRole(guild, memberRoleId, member, memberRoleIds);
+        await MaintainMemberRole(guild, memberRoleId, member, memberRoleIds, quarantineRoleId);
 
-        await EnsureGhostRole(guild, ghostRoleId, member);
+        await MaintainGhostRole(guild, ghostRoleId, member);
     }
 
-    private static async Task EnsureMemberRole(
+    /// <summary>
+    /// Ensures that the member role is added if the user has any of the member roles,
+    /// and removed if the user has none of the member roles
+    /// </summary>
+    private static async Task MaintainMemberRole(
         DiscordGuild guild,
         ulong memberRoleId,
         DiscordMember member,
-        ulong[] memberRoleIds)
+        ulong[] memberRoleIds,
+        ulong quarantineRoleId)
     {
         DiscordRole memberRole = guild.Roles[memberRoleId]
                                  ?? throw new Exception($"Could not find member role with id {memberRoleId}");
 
-        bool userShouldHaveMemberRole = member.Roles.Any(r => memberRoleIds.Contains(r.Id));
+        bool userHasMandatoryRoles = member.Roles.Any(r => memberRoleIds.Contains(r.Id));
         bool userHasMemberRole = member.Roles.Any(r => r.Id == memberRoleId);
+        bool userHasQuarantineRole = member.Roles.Any(r => r.Id == quarantineRoleId);
 
-        if (userShouldHaveMemberRole && !userHasMemberRole)
+        bool userIsEligibleForMemberRole = userHasMandatoryRoles && !userHasQuarantineRole;
+
+        if (!userHasMemberRole && userIsEligibleForMemberRole)
         {
             await member.GrantRoleAsync(memberRole);
         }
-        else if (!userShouldHaveMemberRole && userHasMemberRole)
+        else if (userHasMemberRole && !userIsEligibleForMemberRole)
         {
             await member.RevokeRoleAsync(memberRole);
         }
     }
 
-    private static async Task EnsureGhostRole(DiscordGuild guild, ulong ghostRoleId, DiscordMember member)
+    /// <summary>
+    /// Ensures that the ghost role is added if the user has no roles,
+    /// and removed if the user has any other roles
+    /// </summary>
+    private static async Task MaintainGhostRole(DiscordGuild guild, ulong ghostRoleId, DiscordMember member)
     {
         DiscordRole ghostRole = guild.Roles[ghostRoleId]
                                 ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");

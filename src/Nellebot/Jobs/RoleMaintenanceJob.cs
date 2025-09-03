@@ -45,6 +45,7 @@ public class RoleMaintenanceJob : IJob
             ulong memberRoleId = _options.MemberRoleId;
             ulong[] memberRoleIds = _options.MemberRoleIds;
             ulong ghostRoleId = _options.GhostRoleId;
+            ulong quarantineRoleId = _options.QuarantineRoleId;
 
             DiscordGuild guild = _client.Guilds[guildId];
 
@@ -59,9 +60,9 @@ public class RoleMaintenanceJob : IJob
             DiscordRole ghostRole = guild.Roles[ghostRoleId]
                                     ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
 
-            await AddMissingMemberRoles(allMembers, memberRoleIds, memberRole, cancellationToken);
+            await AddMissingMemberRoles(allMembers, memberRoleIds, memberRole, quarantineRoleId, cancellationToken);
 
-            await RemoveUnneededMemberRoles(allMembers, memberRoleIds, memberRole, cancellationToken);
+            await RemoveUnneededMemberRoles(allMembers, memberRoleIds, memberRole, quarantineRoleId, cancellationToken);
 
             await AddMissingGhostRoles(allMembers, ghostRole, cancellationToken);
 
@@ -80,11 +81,11 @@ public class RoleMaintenanceJob : IJob
         List<DiscordMember> allMembers,
         ulong[] memberRoleIds,
         DiscordRole memberRole,
+        ulong quarantineRoleId,
         CancellationToken cancellationToken)
     {
         List<DiscordMember> missingMemberRoleMembers = allMembers
-            .Where(m => m.Roles.All(r => r.Id != memberRole.Id))
-            .Where(m => m.Roles.Any(r => memberRoleIds.Contains(r.Id)))
+            .Where(m => !HasMemberRole(m) && HasMandatoryRoles(m) && !HasQuarantineRole(m))
             .ToList();
 
         if (missingMemberRoleMembers.Count != 0)
@@ -102,18 +103,34 @@ public class RoleMaintenanceJob : IJob
             _discordLogger.LogExtendedActivityMessage(
                 $"Done adding Member role for {successCount}/{totalCount} users.");
         }
+
+        return;
+
+        bool HasMandatoryRoles(DiscordMember m)
+        {
+            return m.Roles.Any(r => memberRoleIds.Contains(r.Id));
+        }
+
+        bool HasMemberRole(DiscordMember m)
+        {
+            return m.Roles.Any(r => r.Id == memberRole.Id);
+        }
+
+        bool HasQuarantineRole(DiscordMember m)
+        {
+            return m.Roles.Any(r => r.Id == quarantineRoleId);
+        }
     }
 
     private async Task RemoveUnneededMemberRoles(
         List<DiscordMember> allMembers,
         ulong[] memberRoleIds,
         DiscordRole memberRole,
+        ulong quarantineRoleId,
         CancellationToken cancellationToken)
     {
         List<DiscordMember> memberRoleCandidates = allMembers
-            .Where(
-                m => !m.Roles.Any(r => memberRoleIds.Contains(r.Id))
-                     && m.Roles.Any(r => r.Id == memberRole.Id))
+            .Where(m => HasMemberRole(m) && (!HasMandatoryRoles(m) || HasQuarantineRole(m)))
             .ToList();
 
         if (memberRoleCandidates.Count != 0)
@@ -130,6 +147,23 @@ public class RoleMaintenanceJob : IJob
 
             _discordLogger.LogExtendedActivityMessage(
                 $"Done removing Member role for {successCount}/{totalCount} users.");
+        }
+
+        return;
+
+        bool HasMandatoryRoles(DiscordMember m)
+        {
+            return m.Roles.Any(r => memberRoleIds.Contains(r.Id));
+        }
+
+        bool HasMemberRole(DiscordMember m)
+        {
+            return m.Roles.Any(r => r.Id == memberRole.Id);
+        }
+
+        bool HasQuarantineRole(DiscordMember m)
+        {
+            return m.Roles.Any(r => r.Id == quarantineRoleId);
         }
     }
 
@@ -154,8 +188,7 @@ public class RoleMaintenanceJob : IJob
                 m => m.GrantRoleAsync(ghostRole),
                 cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Done adding Ghost role for {successCount}/{totalCount} users.");
+            _discordLogger.LogExtendedActivityMessage($"Done adding Ghost role for {successCount}/{totalCount} users.");
         }
     }
 
@@ -194,12 +227,13 @@ public class RoleMaintenanceJob : IJob
         var successCount = 0;
         const int roleChangeDelayMs = 100;
         const int retryDelayMs = 1000;
+        const int maxAttempts = 3;
 
         foreach (DiscordMember member in roleRecipients)
         {
             var attempt = 0;
 
-            while (attempt < 3)
+            while (attempt < maxAttempts)
             {
                 attempt++;
 

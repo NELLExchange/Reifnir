@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Entities.AuditLogs;
 using DSharpPlus.EventArgs;
@@ -110,6 +111,30 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         await _userLogService.CreateUserLog(member.Id, DateTime.UtcNow, UserLogType.JoinedServer);
         await _userLogService.CreateUserLog(member.Id, member.GetFullUsername(), UserLogType.UsernameChange);
+
+        // Check if user needs to be quarantined for having a brand-new account
+        // If yes, assign role and create Quarantined user log.
+        const int suspiciousAccountAgeThresholdDays = 2;
+        TimeSpan memberAccountAge = DateTimeOffset.UtcNow - member.Id.GetSnowflakeTime();
+
+#if DEBUG
+        if (true)
+#else
+        if (memberAccountAge < TimeSpan.FromDays(suspiciousAccountAgeThresholdDays))
+#endif
+        {
+            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
+            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
+            if (quarantineRole is not null)
+            {
+                const string quarantineReason = "Member account age under threshold.";
+                await member.GrantRoleAsync(quarantineRole, quarantineReason);
+                await _userLogService.CreateUserLog(member.Id, quarantineReason, UserLogType.Quarantined);
+
+                _discordLogger.LogTrustedChannelMessage(
+                    $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {quarantineReason}.");
+            }
+        }
     }
 
     public async Task Handle(GuildMemberRemovedNotification notification, CancellationToken cancellationToken)
@@ -167,7 +192,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         GuildMemberUpdatedEventArgs args = notification.EventArgs;
 
-        int roleChanges = CheckForRolesUpdate(args);
+        int roleChanges = await CheckForRolesUpdate(args);
         totalChanges += roleChanges;
 
         bool nicknameUpdated = await CheckForNicknameUpdate(args);
@@ -414,15 +439,16 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         return true;
     }
 
-    private int CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
+    private async Task<int> CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
     {
         List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
         List<DiscordRole> removedRoles =
             args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
 
-        string memberMention = args.Member.Mention;
-        string memberDisplayName = args.Member.DisplayName;
-        string memberDetailedIdentifier = args.Member.GetDetailedMemberIdentifier(true);
+        DiscordMember member = args.Member;
+        string memberMention = member.Mention;
+        string memberDisplayName = member.DisplayName;
+        string memberDetailedIdentifier = member.GetDetailedMemberIdentifier(true);
 
         int roleChangesCount = addedRoles.Count + removedRoles.Count;
 
@@ -442,6 +468,17 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                     warningMessage.AppendLine($"Awoooooo! **{memberDetailedIdentifier}** is a **{addedRole.Name}**.");
                 }
             }
+
+            const int suspiciousNewRoleCountThreshold = 3;
+
+            int userAssignableAddedRolesCount =
+                addedRoles.Count(r => r.IsUserAssignable());
+
+            if (userAssignableAddedRolesCount > suspiciousNewRoleCountThreshold)
+            {
+                warningMessage.AppendLine(
+                    $"Awoooooo! **{memberDetailedIdentifier}** chose {userAssignableAddedRolesCount} roles in one go. Possibly bot.");
+            }
         }
 
         if (removedRoles.Count > 0)
@@ -454,12 +491,14 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                 _discordLogger.LogExtendedActivityMessage(
                     $"Role change for {memberMention}: Removed {removedRole.Name}.");
             }
-        }
 
-        if (addedRoles.Count > 2)
-        {
-            warningMessage.AppendLine(
-                $"Awoooooo! **{memberDetailedIdentifier}** chose more than 2 roles in one go. Possibly bot.");
+            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
+            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
+            if (quarantineRole is not null)
+            {
+                const string quarantineReason = "Quarantine role removed";
+                await _userLogService.CreateUserLog(member.Id, quarantineReason, UserLogType.Quarantined);
+            }
         }
 
         if (warningMessage.Length > 0) _discordLogger.LogTrustedChannelMessage(warningMessage.ToString().TrimEnd());
