@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using MediatR;
+using Microsoft.Extensions.Options;
 using Nellebot.Common.Models;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
 using Nellebot.Services;
 using Nellebot.Services.Loggers;
+using Nellebot.Utils;
 
 namespace Nellebot.NotificationHandlers;
 
@@ -21,25 +24,32 @@ public class GreetingHandler :
     private const string GoodbyeMessageTemplateType = "goodbye";
     private const string FallbackGoodbyeMessageTemplate = "$USER has left. Goodbye!";
     private const int MessageTemplatesCacheDurationMinutes = 5;
+    private const int WaitForQuarantineCheckDurationMs = 10 * 1000;
     private readonly BotSettingsService _botSettingsService;
     private readonly SharedCache _cache;
+    private readonly BotOptions _botOptions;
 
     private readonly DiscordLogger _discordLogger;
+    private readonly DiscordResolver _discordResolver;
     private readonly GoodbyeMessageBuffer _goodbyeMessageBuffer;
     private readonly MessageTemplateRepository _messageTemplateRepo;
 
     public GreetingHandler(
         DiscordLogger discordLogger,
+        DiscordResolver discordResolver,
         BotSettingsService botSettingsService,
         GoodbyeMessageBuffer goodbyeMessageBuffer,
         MessageTemplateRepository messageTemplateRepo,
-        SharedCache cache)
+        SharedCache cache,
+        IOptions<BotOptions> botOptions)
     {
         _discordLogger = discordLogger;
+        _discordResolver = discordResolver;
         _botSettingsService = botSettingsService;
         _goodbyeMessageBuffer = goodbyeMessageBuffer;
         _messageTemplateRepo = messageTemplateRepo;
         _cache = cache;
+        _botOptions = botOptions.Value;
     }
 
     public async Task Handle(BufferedMemberLeftNotification notification, CancellationToken cancellationToken)
@@ -71,7 +81,25 @@ public class GreetingHandler :
 
     public async Task Handle(GuildMemberAddedNotification notification, CancellationToken cancellationToken)
     {
-        string memberMention = notification.EventArgs.Member.Mention;
+        DiscordMember newMember = notification.EventArgs.Member;
+
+        // Delay greeting the user to give enough time for quarantine checking;
+        // We don't want to greet quarantined users.
+        await Task.Delay(WaitForQuarantineCheckDurationMs, cancellationToken);
+
+        ulong quarantineRoleId = _botOptions.QuarantineRoleId;
+
+        // Need to fetch an up to date member object with up to date roles
+        DiscordMember? upToDateMember = await _discordResolver.ResolveGuildMember(newMember.Id);
+        if (upToDateMember is not null)
+        {
+            bool userHasQuarantineRole = upToDateMember.Roles.Any(x => x.Id == quarantineRoleId);
+
+            if (userHasQuarantineRole)
+                return;
+        }
+
+        string memberMention = newMember.Mention;
 
         string? greetingMessage = await _botSettingsService.GetGreetingsMessage(memberMention);
 
@@ -105,7 +133,7 @@ public class GreetingHandler :
 
         if (goodbyeMessages.Count > 0)
         {
-            int idx = new Random().Next(0, goodbyeMessages.Count);
+            int idx = new Random().Next(minValue: 0, goodbyeMessages.Count);
             messageTemplate = goodbyeMessages[idx].Message;
         }
         else
