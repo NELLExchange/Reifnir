@@ -5,51 +5,46 @@ using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using MediatR;
-using Microsoft.Extensions.Options;
 using Nellebot.Common.Models;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
 using Nellebot.Services;
 using Nellebot.Services.Loggers;
-using Nellebot.Utils;
 
 namespace Nellebot.NotificationHandlers;
 
 public class GreetingHandler :
-    INotificationHandler<GuildMemberAddedNotification>,
+    INotificationHandler<MemberApprovedNotification>,
     INotificationHandler<GuildMemberRemovedNotification>,
     INotificationHandler<BufferedMemberLeftNotification>
 {
     private const int MaxUsernamesToDisplay = 100;
+    private const string FallbackGreetingMessage = "Welcome, $USER!";
     private const string GoodbyeMessageTemplateType = "goodbye";
     private const string FallbackGoodbyeMessageTemplate = "$USER has left. Goodbye!";
     private const int MessageTemplatesCacheDurationMinutes = 5;
-    private const int WaitForQuarantineCheckDurationMs = 10 * 1000;
+
     private readonly BotSettingsService _botSettingsService;
     private readonly SharedCache _cache;
-    private readonly BotOptions _botOptions;
-
     private readonly DiscordLogger _discordLogger;
-    private readonly DiscordResolver _discordResolver;
+    private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly GoodbyeMessageBuffer _goodbyeMessageBuffer;
     private readonly MessageTemplateRepository _messageTemplateRepo;
 
     public GreetingHandler(
         DiscordLogger discordLogger,
-        DiscordResolver discordResolver,
+        IDiscordErrorLogger discordErrorLogger,
         BotSettingsService botSettingsService,
         GoodbyeMessageBuffer goodbyeMessageBuffer,
         MessageTemplateRepository messageTemplateRepo,
-        SharedCache cache,
-        IOptions<BotOptions> botOptions)
+        SharedCache cache)
     {
         _discordLogger = discordLogger;
-        _discordResolver = discordResolver;
+        _discordErrorLogger = discordErrorLogger;
         _botSettingsService = botSettingsService;
         _goodbyeMessageBuffer = goodbyeMessageBuffer;
         _messageTemplateRepo = messageTemplateRepo;
         _cache = cache;
-        _botOptions = botOptions.Value;
     }
 
     public async Task Handle(BufferedMemberLeftNotification notification, CancellationToken cancellationToken)
@@ -58,52 +53,49 @@ public class GreetingHandler :
 
         if (userList.Count == 0) return;
 
-        if (userList.Count == 1)
+        string? greetingMessage;
+
+        switch (userList.Count)
         {
-            _discordLogger.LogGreetingMessage(await GetRandomGoodbyeMessage(userList.First()));
-            return;
+            case 1:
+                greetingMessage = await GetRandomGoodbyeMessage(userList.First());
+                break;
+
+            case <= MaxUsernamesToDisplay:
+            {
+                string userListOutput = string.Join(", ", userList.Select(x => $"**{x}**"));
+                greetingMessage = $"The following users have left the server: {userListOutput}. Goodbye!";
+                break;
+            }
+
+            default:
+            {
+                IEnumerable<string> usersToShow = userList.Take(MaxUsernamesToDisplay);
+                int remainingCount = userList.Count - MaxUsernamesToDisplay;
+                string usersToShowOutput = string.Join(", ", usersToShow.Select(x => $"**{x}**"));
+
+                greetingMessage =
+                    $"The following users have left the server: {usersToShowOutput} and {remainingCount} others. Goodbye!";
+                break;
+            }
         }
 
-        if (userList.Count <= MaxUsernamesToDisplay)
-        {
-            string userListOutput = string.Join(", ", userList.Select(x => $"**{x}**"));
-            _discordLogger.LogGreetingMessage($"The following users have left the server: {userListOutput}. Goodbye!");
-            return;
-        }
-
-        IEnumerable<string> usersToShow = userList.Take(MaxUsernamesToDisplay);
-        int remainingCount = userList.Count - MaxUsernamesToDisplay;
-        string usersToShowOutput = string.Join(", ", usersToShow.Select(x => $"**{x}**"));
-
-        _discordLogger.LogGreetingMessage(
-            $"The following users have left the server: {usersToShowOutput} and {remainingCount} others. Goodbye!");
+        _discordLogger.LogGreetingMessage(greetingMessage);
     }
 
-    public async Task Handle(GuildMemberAddedNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(MemberApprovedNotification notification, CancellationToken cancellationToken)
     {
-        DiscordMember newMember = notification.EventArgs.Member;
-
-        // Delay greeting the user to give enough time for quarantine checking;
-        // We don't want to greet quarantined users.
-        await Task.Delay(WaitForQuarantineCheckDurationMs, cancellationToken);
-
-        ulong quarantineRoleId = _botOptions.QuarantineRoleId;
-
-        // Need to fetch an up to date member object with up to date roles
-        DiscordMember? upToDateMember = await _discordResolver.ResolveGuildMember(newMember.Id);
-        if (upToDateMember is not null)
-        {
-            bool userHasQuarantineRole = upToDateMember.Roles.Any(x => x.Id == quarantineRoleId);
-
-            if (userHasQuarantineRole)
-                return;
-        }
-
+        DiscordMember newMember = notification.Member;
         string memberMention = newMember.Mention;
 
         string? greetingMessage = await _botSettingsService.GetGreetingsMessage(memberMention);
 
-        if (greetingMessage == null) throw new Exception("Could not load greeting message");
+        if (greetingMessage == null)
+        {
+            greetingMessage = FallbackGreetingMessage;
+
+            _discordErrorLogger.LogError("Greeting message couldn't be retrieved");
+        }
 
         _discordLogger.LogGreetingMessage(greetingMessage);
     }
