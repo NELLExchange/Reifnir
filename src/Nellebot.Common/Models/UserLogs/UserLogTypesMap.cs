@@ -13,6 +13,6 @@ public static class UserLogTypesMap
         { UserLogType.JoinedServer, typeof(DateTime) },
         { UserLogType.LeftServer, typeof(DateTime) },
         { UserLogType.Quarantined, typeof(string) },
-        { UserLogType.Unquarantined, typeof(string) },
+        { UserLogType.Approved, typeof(string) },
     };
 }

@@ -528,7 +528,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
                 if (quarantineRole is not null && removedRole.Id == quarantineRole.Id)
                 {
-                    await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Quarantined);
+                    await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
                 }
             }
         }

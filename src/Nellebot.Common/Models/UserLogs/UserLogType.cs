@@ -8,5 +8,5 @@ public enum UserLogType
     JoinedServer = 5,
     LeftServer = 6,
     Quarantined = 7,
-    Unquarantined = 8,
+    Approved = 8,
 }
