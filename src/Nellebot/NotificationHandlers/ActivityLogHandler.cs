@@ -21,13 +21,18 @@ using Nellebot.Utils;
 
 namespace Nellebot.NotificationHandlers;
 
+/// <summary>
+/// This class logs stuff to log channels
+/// </summary>
 public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification>,
     INotificationHandler<GuildBanRemovedNotification>,
     INotificationHandler<MessageDeletedNotification>,
     INotificationHandler<MessageBulkDeletedNotification>,
     INotificationHandler<GuildMemberAddedNotification>,
     INotificationHandler<GuildMemberRemovedNotification>,
-    INotificationHandler<GuildMemberUpdatedNotification>
+    INotificationHandler<GuildMemberUpdatedNotification>,
+    INotificationHandler<MemberApprovedNotification>,
+    INotificationHandler<MemberQuarantinedNotification>
 {
     private readonly BotOptions _botOptions;
     private readonly IDiscordErrorLogger _discordErrorLogger;
@@ -392,6 +397,33 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         }
 
         _discordLogger.LogExtendedActivityMessage(logMessage);
+    }
+
+    public async Task Handle(MemberApprovedNotification notification, CancellationToken cancellationToken)
+    {
+        DiscordMember member = notification.Member;
+        DiscordMember memberResponsible = notification.MemberResponsible;
+
+        _discordLogger.LogExtendedActivityMessage(
+            $"**{member.DisplayName}** has been approved by **{memberResponsible.DisplayName}**.");
+
+        await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
+    }
+
+    public async Task Handle(MemberQuarantinedNotification notification, CancellationToken cancellationToken)
+    {
+        DiscordMember member = notification.Member;
+        string memberIdentifier = member.GetDetailedMemberIdentifier();
+        DiscordMember memberResponsible = notification.MemberResponsible;
+        string reason = notification.Reason;
+
+        _discordLogger.LogTrustedChannelMessage(
+            $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {reason}.");
+
+        _discordLogger.LogExtendedActivityMessage(
+            $"**{memberIdentifier}** has been quarantined by **{memberResponsible.DisplayName}**.");
+
+        await _userLogService.CreateUserLog(member.Id, reason, UserLogType.Quarantined);
     }
 
     private async Task<bool> CheckForUsernameUpdate(GuildMemberUpdatedEventArgs args)
