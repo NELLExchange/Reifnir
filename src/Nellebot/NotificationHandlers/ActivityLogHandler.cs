@@ -518,18 +518,18 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             string removedRolesNames = string.Join(", ", removedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Removed roles from **{memberDisplayName}**: {removedRolesNames}");
 
+            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
+            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
+
             foreach (DiscordRole removedRole in removedRoles)
             {
                 _discordLogger.LogExtendedActivityMessage(
                     $"Role change for {memberMention}: Removed {removedRole.Name}.");
-            }
 
-            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
-            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
-            if (quarantineRole is not null)
-            {
-                const string quarantineReason = "Quarantine role removed";
-                await _userLogService.CreateUserLog(member.Id, quarantineReason, UserLogType.Quarantined);
+                if (quarantineRole is not null && removedRole.Id == quarantineRole.Id)
+                {
+                    await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Quarantined);
+                }
             }
         }
 
