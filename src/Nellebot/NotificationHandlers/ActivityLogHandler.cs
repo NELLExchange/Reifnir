@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Entities.AuditLogs;
 using DSharpPlus.EventArgs;
@@ -116,30 +115,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         await _userLogService.CreateUserLog(member.Id, DateTime.UtcNow, UserLogType.JoinedServer);
         await _userLogService.CreateUserLog(member.Id, member.GetFullUsername(), UserLogType.UsernameChange);
-
-        // Check if user needs to be quarantined for having a brand-new account
-        // If yes, assign role and create Quarantined user log.
-        const int suspiciousAccountAgeThresholdDays = 2;
-        TimeSpan memberAccountAge = DateTimeOffset.UtcNow - member.Id.GetSnowflakeTime();
-
-#if DEBUG
-        if (true)
-#else
-        if (memberAccountAge < TimeSpan.FromDays(suspiciousAccountAgeThresholdDays))
-#endif
-        {
-            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
-            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
-            if (quarantineRole is not null)
-            {
-                const string quarantineReason = "Member account age under threshold.";
-                await member.GrantRoleAsync(quarantineRole, quarantineReason);
-                await _userLogService.CreateUserLog(member.Id, quarantineReason, UserLogType.Quarantined);
-
-                _discordLogger.LogTrustedChannelMessage(
-                    $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {quarantineReason}.");
-            }
-        }
     }
 
     public async Task Handle(GuildMemberRemovedNotification notification, CancellationToken cancellationToken)
