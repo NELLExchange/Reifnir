@@ -179,4 +179,10 @@ public class DiscordResolver
 
         return TryResolveResult<T>.FromError("Audit log entry not found");
     }
+
+    public DiscordMember GetBotMember()
+    {
+        DiscordGuild guild = ResolveGuild();
+        return guild.CurrentMember;
+    }
 }
