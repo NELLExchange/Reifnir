@@ -66,4 +66,18 @@ public class RandomModule
     {
         return ctx.RespondAsync($"Why ban **{str}** when I can ban you instead?");
     }
+
+    [BaseCommandCheck]
+    [Command("tingle")]
+    [Description("Tingle")]
+    public static ValueTask Tingle(TextCommandContext ctx, [RemainingText] string? text = null)
+    {
+        string? theText = ctx.Message.ReferencedMessage?.Content ?? text;
+
+        if (string.IsNullOrEmpty(theText)) return ValueTask.CompletedTask;
+
+        const string specialMention = "<@131479587287728128>";
+
+        return ctx.RespondAsync($"{specialMention}'s butt got pounded by a {theText}");
+    }
 }
