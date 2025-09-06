@@ -378,9 +378,10 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     {
         DiscordMember member = notification.Member;
         DiscordMember memberResponsible = notification.MemberResponsible;
+        string memberMention = member.Mention;
 
         _discordLogger.LogExtendedActivityMessage(
-            $"**{member.DisplayName}** has been approved by **{memberResponsible.DisplayName}**.");
+            $"{memberMention} has been approved by **{memberResponsible.DisplayName}**.");
 
         await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
     }
@@ -389,6 +390,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     {
         DiscordMember member = notification.Member;
         string memberIdentifier = member.GetDetailedMemberIdentifier();
+        string memberMention = member.Mention;
         DiscordMember memberResponsible = notification.MemberResponsible;
         string reason = notification.Reason;
 
@@ -396,7 +398,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {reason}.");
 
         _discordLogger.LogExtendedActivityMessage(
-            $"**{memberIdentifier}** has been quarantined by **{memberResponsible.DisplayName}**.");
+            $"{memberMention} has been quarantined by **{memberResponsible.DisplayName}**.");
 
         await _userLogService.CreateUserLog(member.Id, reason, UserLogType.Quarantined);
     }
