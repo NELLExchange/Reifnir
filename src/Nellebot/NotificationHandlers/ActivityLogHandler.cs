@@ -406,7 +406,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     private async Task<bool> CheckForUsernameUpdate(GuildMemberUpdatedEventArgs args)
     {
         string? usernameAfter = args.MemberAfter.GetFullUsername();
-        string? usernameBefore = args.MemberBefore?.GetFullUsername();
+        string? usernameBefore = args.MemberBefore.GetFullUsername();
 
         if (string.IsNullOrWhiteSpace(usernameBefore) || usernameBefore == usernameAfter)
         {
@@ -438,10 +438,9 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         // TODO check if member's nickname was changed by moderator
         if (nicknameBefore == nicknameAfter) return false;
 
-        var message =
-            $"Nickname change for {args.Member.Mention}. {nicknameBefore ?? "*no nickname*"} => {nicknameAfter ?? "*no nickname*"}.";
-
-        _discordLogger.LogExtendedActivityMessage(message);
+        const string noNickname = "*no nickname*";
+        _discordLogger.LogExtendedActivityMessage(
+            $"Nickname change for {args.Member.Mention}. {nicknameBefore ?? noNickname} => {nicknameAfter ?? noNickname}.");
 
         await _userLogService.CreateUserLog(args.Member.Id, nicknameAfter, UserLogType.NicknameChange);
 
@@ -450,14 +449,14 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
     private async Task<int> CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
     {
-        List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
-        List<DiscordRole> removedRoles =
-            args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
-
         DiscordMember member = args.Member;
         string memberMention = member.Mention;
         string memberDisplayName = member.DisplayName;
         string memberDetailedIdentifier = member.GetDetailedMemberIdentifier(true);
+
+        List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
+        List<DiscordRole> removedRoles =
+            args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
 
         int roleChangesCount = addedRoles.Count + removedRoles.Count;
 
@@ -471,11 +470,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             foreach (DiscordRole addedRole in addedRoles)
             {
                 _discordLogger.LogExtendedActivityMessage($"Role change for {memberMention}: Added {addedRole.Name}.");
-
-                if (addedRole.Id == _botOptions.SpammerRoleId)
-                {
-                    warningMessage.AppendLine($"Awoooooo! **{memberDetailedIdentifier}** is a **{addedRole.Name}**.");
-                }
             }
 
             const int suspiciousNewRoleCountThreshold = 3;

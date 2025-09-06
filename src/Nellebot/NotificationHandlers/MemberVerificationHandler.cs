@@ -37,12 +37,7 @@ public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNo
         DiscordMember member = args.Member;
 
         // Check if user needs to be quarantined for having a brand-new account
-        // If yes, assign role and create Quarantined user log.
-#if DEBUG
-        const int suspiciousAccountAgeThresholdDays = 42 * 365;
-#else
         const int suspiciousAccountAgeThresholdDays = 2;
-#endif
         TimeSpan memberAccountAge = DateTimeOffset.UtcNow - member.Id.GetSnowflakeTime();
 
         DiscordMember botMember = _discordResolver.GetBotMember();

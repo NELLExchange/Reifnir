@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nellebot.Jobs;
+using Nellebot.Services.Loggers;
+using Nellebot.Utils;
+using Nellebot.Workers;
 using Quartz;
 
 namespace Nellebot.NotificationHandlers;
@@ -17,20 +20,51 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
 {
     private readonly ILogger<MemberRoleIntegrityHandler> _logger;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IDiscordErrorLogger _discordErrorLogger;
+    private readonly DiscordResolver _discordResolver;
+    private readonly EventQueueChannel _eventQueueChannel;
     private readonly BotOptions _options;
 
     public MemberRoleIntegrityHandler(
         ILogger<MemberRoleIntegrityHandler> logger,
         IOptions<BotOptions> options,
-        ISchedulerFactory schedulerFactory)
+        ISchedulerFactory schedulerFactory,
+        IDiscordErrorLogger discordErrorLogger,
+        DiscordResolver discordResolver,
+        EventQueueChannel eventQueueChannel)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
+        _discordErrorLogger = discordErrorLogger;
+        _discordResolver = discordResolver;
+        _eventQueueChannel = eventQueueChannel;
         _options = options.Value;
     }
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
+        GuildMemberUpdatedEventArgs args = notification.EventArgs;
+        List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
+        List<DiscordRole> removedRoles =
+            args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
+
+        int roleChangesCount = addedRoles.Count + removedRoles.Count;
+
+        if (roleChangesCount == 0) return;
+
+        DiscordMember member = args.Member ?? throw new Exception(nameof(member));
+        DiscordGuild guild = args.Guild;
+
+        ulong[] memberRoleIds = _options.MemberRoleIds;
+        ulong memberRoleId = _options.MemberRoleId;
+        ulong ghostRoleId = _options.GhostRoleId;
+        ulong quarantineRoleId = _options.QuarantineRoleId;
+
+        await QuarantineIfSpammer(member, addedRoles);
+
+        // TODO handle this in a more robust way.
+        // Either pause the job, if possible, or just let it run
+        // and make sure it doesn't clash with this notification handler.
         IScheduler scheduler = await _schedulerFactory.GetScheduler(cancellationToken);
         IReadOnlyCollection<IJobExecutionContext> jobs = await scheduler.GetCurrentlyExecutingJobs(cancellationToken);
         bool roleMaintenanceIsRunning = jobs.Any(j => Equals(j.JobDetail.Key, RoleMaintenanceJob.Key));
@@ -40,21 +74,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
             _logger.LogDebug("Role maintenance job is currently running, skipping role integrity check");
             return;
         }
-
-        bool memberRolesChanged = notification.EventArgs.RolesBefore.Count != notification.EventArgs.RolesAfter.Count;
-
-        if (!memberRolesChanged) return;
-
-        ulong[] memberRoleIds = _options.MemberRoleIds;
-        ulong memberRoleId = _options.MemberRoleId;
-        ulong ghostRoleId = _options.GhostRoleId;
-        ulong quarantineRoleId = _options.QuarantineRoleId;
-
-        DiscordMember? member = notification.EventArgs.Member;
-
-        if (member is null) throw new Exception(nameof(member));
-
-        DiscordGuild guild = notification.EventArgs.Guild;
 
         await MaintainMemberRole(guild, memberRoleId, member, memberRoleIds, quarantineRoleId);
 
@@ -114,6 +133,44 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         if (userHasGhostRole && userHasAnyOtherRole)
         {
             await member.RevokeRoleAsync(ghostRole);
+        }
+    }
+
+    private async Task QuarantineIfSpammer(DiscordMember member, List<DiscordRole> addedRoles)
+    {
+        ulong spammerRoleId = _options.SpammerRoleId;
+
+        TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - member.JoinedAt;
+        DiscordRole? addedSpammerRole = addedRoles.FirstOrDefault(r => r.Id == spammerRoleId);
+        bool hasChosenSpammerRole = addedSpammerRole is not null;
+        const int maxJoinAgeForAutomatedQuarantineDays = 7;
+
+        bool shouldQuarantineSpammer = hasChosenSpammerRole
+                                       && memberJoinedAgo < TimeSpan.FromDays(maxJoinAgeForAutomatedQuarantineDays);
+
+        if (!shouldQuarantineSpammer) return;
+
+        var quarantineReason = $"User is a **{addedSpammerRole!.Name}**";
+        DiscordMember botMember = _discordResolver.GetBotMember();
+        await QuarantineMember(member, botMember, quarantineReason);
+    }
+
+    private async Task QuarantineMember(DiscordMember member, DiscordMember memberResponsible, string quarantineReason)
+    {
+        string memberIdentifier = member.GetDetailedMemberIdentifier();
+        ulong quarantineRoleId = _options.QuarantineRoleId;
+        DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
+        if (quarantineRole is not null)
+        {
+            await member.GrantRoleAsync(quarantineRole, quarantineReason);
+
+            await _eventQueueChannel.Writer.WriteAsync(
+                new MemberQuarantinedNotification(member, memberResponsible, quarantineReason));
+        }
+        else
+        {
+            _discordErrorLogger.LogError(
+                $"Attempted to quarantine member {memberIdentifier}, but was unable to resolve quarantine role");
         }
     }
 }
