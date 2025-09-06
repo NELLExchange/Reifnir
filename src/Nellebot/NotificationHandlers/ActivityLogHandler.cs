@@ -452,15 +452,12 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         DiscordMember member = args.Member;
         string memberMention = member.Mention;
         string memberDisplayName = member.DisplayName;
-        string memberDetailedIdentifier = member.GetDetailedMemberIdentifier(true);
 
         List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
         List<DiscordRole> removedRoles =
             args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
 
         int roleChangesCount = addedRoles.Count + removedRoles.Count;
-
-        var warningMessage = new StringBuilder();
 
         if (addedRoles.Count > 0)
         {
@@ -470,17 +467,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             foreach (DiscordRole addedRole in addedRoles)
             {
                 _discordLogger.LogExtendedActivityMessage($"Role change for {memberMention}: Added {addedRole.Name}.");
-            }
-
-            const int suspiciousNewRoleCountThreshold = 3;
-
-            int userAssignableAddedRolesCount =
-                addedRoles.Count(r => r.IsUserAssignable());
-
-            if (userAssignableAddedRolesCount > suspiciousNewRoleCountThreshold)
-            {
-                warningMessage.AppendLine(
-                    $"Awoooooo! **{memberDetailedIdentifier}** chose {userAssignableAddedRolesCount} roles in one go. Possibly bot.");
             }
         }
 
@@ -503,8 +489,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                 }
             }
         }
-
-        if (warningMessage.Length > 0) _discordLogger.LogTrustedChannelMessage(warningMessage.ToString().TrimEnd());
 
         return roleChangesCount;
     }
