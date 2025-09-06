@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
 using MediatR;
+using Microsoft.Extensions.Options;
 using Nellebot.Common.Models;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
@@ -26,6 +27,7 @@ public class GreetingHandler :
 
     private readonly BotSettingsService _botSettingsService;
     private readonly SharedCache _cache;
+    private readonly BotOptions _botOptions;
     private readonly DiscordLogger _discordLogger;
     private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly GoodbyeMessageBuffer _goodbyeMessageBuffer;
@@ -37,7 +39,8 @@ public class GreetingHandler :
         BotSettingsService botSettingsService,
         GoodbyeMessageBuffer goodbyeMessageBuffer,
         MessageTemplateRepository messageTemplateRepo,
-        SharedCache cache)
+        SharedCache cache,
+        IOptions<BotOptions> botOptions)
     {
         _discordLogger = discordLogger;
         _discordErrorLogger = discordErrorLogger;
@@ -45,6 +48,7 @@ public class GreetingHandler :
         _goodbyeMessageBuffer = goodbyeMessageBuffer;
         _messageTemplateRepo = messageTemplateRepo;
         _cache = cache;
+        _botOptions = botOptions.Value;
     }
 
     public async Task Handle(BufferedMemberLeftNotification notification, CancellationToken cancellationToken)
@@ -102,9 +106,20 @@ public class GreetingHandler :
 
     public Task Handle(GuildMemberRemovedNotification notification, CancellationToken cancellationToken)
     {
-        string memberName = notification.EventArgs.Member.DisplayName;
+        DiscordMember member = notification.EventArgs.Member;
+        string memberName = member.DisplayName;
 
-        _goodbyeMessageBuffer.AddUser(memberName);
+        TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - member.JoinedAt;
+        bool memberIsQuarantined = member.Roles.Any(r => r.Id == _botOptions.QuarantineRoleId);
+
+        // Don't want to say goodbye to quarantined users who just recently joined,
+        // since they were most likely not greeted either.
+        const int minQuarantineJoinDateForGoodbyeDays = 2;
+        bool skipSayingGoodbye = memberIsQuarantined
+                                 && memberJoinedAgo < TimeSpan.FromDays(minQuarantineJoinDateForGoodbyeDays);
+
+        if (!skipSayingGoodbye)
+            _goodbyeMessageBuffer.AddUser(memberName);
 
         return Task.CompletedTask;
     }
