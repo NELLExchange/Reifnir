@@ -9,9 +9,8 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nellebot.Jobs;
-using Nellebot.Services.Loggers;
+using Nellebot.Services;
 using Nellebot.Utils;
-using Nellebot.Workers;
 using Quartz;
 
 namespace Nellebot.NotificationHandlers;
@@ -20,24 +19,21 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
 {
     private readonly ILogger<MemberRoleIntegrityHandler> _logger;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly DiscordResolver _discordResolver;
-    private readonly EventQueueChannel _eventQueueChannel;
+    private readonly QuarantineService _quarantineService;
     private readonly BotOptions _options;
 
     public MemberRoleIntegrityHandler(
         ILogger<MemberRoleIntegrityHandler> logger,
         IOptions<BotOptions> options,
         ISchedulerFactory schedulerFactory,
-        IDiscordErrorLogger discordErrorLogger,
         DiscordResolver discordResolver,
-        EventQueueChannel eventQueueChannel)
+        QuarantineService quarantineService)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
-        _discordErrorLogger = discordErrorLogger;
         _discordResolver = discordResolver;
-        _eventQueueChannel = eventQueueChannel;
+        _quarantineService = quarantineService;
         _options = options.Value;
     }
 
@@ -152,25 +148,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
 
         var quarantineReason = $"User is a **{addedSpammerRole!.Name}**";
         DiscordMember botMember = _discordResolver.GetBotMember();
-        await QuarantineMember(member, botMember, quarantineReason);
-    }
-
-    private async Task QuarantineMember(DiscordMember member, DiscordMember memberResponsible, string quarantineReason)
-    {
-        string memberIdentifier = member.GetDetailedMemberIdentifier();
-        ulong quarantineRoleId = _options.QuarantineRoleId;
-        DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
-        if (quarantineRole is not null)
-        {
-            await member.GrantRoleAsync(quarantineRole, quarantineReason);
-
-            await _eventQueueChannel.Writer.WriteAsync(
-                new MemberQuarantinedNotification(member, memberResponsible, quarantineReason));
-        }
-        else
-        {
-            _discordErrorLogger.LogError(
-                $"Attempted to quarantine member {memberIdentifier}, but was unable to resolve quarantine role");
-        }
+        await _quarantineService.QuarantineMember(member, botMember, quarantineReason);
     }
 }
