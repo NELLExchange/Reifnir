@@ -10,6 +10,7 @@ public class BotSettingsService
     private const string GreetingMessageKey = "GreetingMessage";
     private const string QuarantineMessageKey = "QuarantineMessage";
     private const string MessageTemplateUserVariable = "$USER";
+    private const string MessageTemplateReasonVariable = "$REASON";
     private const string LastHeartbeatKey = "LastHeartbeat";
 
     private readonly BotSettingsRepository _botSettingsRepo;
@@ -49,7 +50,7 @@ public class BotSettingsService
         _cache.FlushCache(SharedCacheKeys.QuarantineMessage);
     }
 
-    public async Task<string?> GetQuarantineMessage(string userMention)
+    public async Task<string?> GetQuarantineMessage(string userMention, string reason)
     {
         string? messageTemplate = await _cache.LoadFromCacheAsync(
             SharedCacheKeys.QuarantineMessage,
@@ -58,7 +59,10 @@ public class BotSettingsService
                     .QuarantineMessage),
             TimeSpan.FromMinutes(5));
 
-        string? message = messageTemplate?.Replace(MessageTemplateUserVariable, userMention);
+        if (messageTemplate == null) return null;
+
+        string message = messageTemplate.Replace(MessageTemplateUserVariable, userMention);
+        message = message.Replace(MessageTemplateReasonVariable, reason);
 
         return message;
     }

@@ -75,17 +75,18 @@ public class HelpModule
         var command = $"{_options.CommandPrefix}admin";
 
         sb.AppendLine($"`{command} nickname [name]`");
-        sb.AppendLine("`   Change Reifnir's nickname`");
+        sb.AppendLine("`   Change Reifnir's nickname.`");
         sb.AppendLine();
 
         sb.AppendLine($"`{command} set-greeting-message [message]`");
         sb.AppendLine("`   Set the greeting message that Reifnir welcomes new users with.`");
-        sb.AppendLine("`   Use the token $USER to @mention the new user in the message`");
+        sb.AppendLine("`   Use the token $USER to @mention the new user in the message.`");
         sb.AppendLine();
 
         sb.AppendLine($"`{command} set-quarantine-message [message]`");
         sb.AppendLine("`   Set the quarantine message that Reifnir sends to quarantined users.`");
-        sb.AppendLine("`   Use the token $USER to @mention the quarantined user in the message`");
+        sb.AppendLine(
+            "`   Use the tokens $USER and $REASON to include the quarantined user's @mention and the quarantine reason in the message.`");
         sb.AppendLine();
 
         DiscordEmbed eb = EmbedBuilderHelper.BuildSimpleEmbed("Misc. admin commands", sb.ToString());

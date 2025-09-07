@@ -110,8 +110,9 @@ public class GreetingHandler :
     {
         DiscordMember newMember = notification.Member;
         string memberMention = newMember.Mention;
+        string reason = notification.Reason;
 
-        string? quarantineMessage = await _botSettingsService.GetQuarantineMessage(memberMention);
+        string? quarantineMessage = await _botSettingsService.GetQuarantineMessage(memberMention, reason);
 
         if (quarantineMessage == null)
         {

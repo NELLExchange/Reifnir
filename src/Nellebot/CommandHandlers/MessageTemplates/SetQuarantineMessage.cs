@@ -35,8 +35,9 @@ public class SetQuarantineMessageHandler : IRequestHandler<SetQuarantineMessageC
         await _botSettingsService.SetQuarantineMessage(message);
 
         string previewMemberMention = ctx.Member?.Mention ?? string.Empty;
+        const string previewReason = "Sussy";
 
-        string? messagePreview = await _botSettingsService.GetQuarantineMessage(previewMemberMention);
+        string? messagePreview = await _botSettingsService.GetQuarantineMessage(previewMemberMention, previewReason);
 
         var sb = new StringBuilder("Quarantine message updated successfully. Here's a preview:");
         sb.AppendLine();
