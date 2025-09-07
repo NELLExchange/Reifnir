@@ -49,7 +49,7 @@ public class HelpModule
         sb.AppendLine($"`{commandPrefix}help valhall`");
 
         sb.AppendLine();
-        sb.AppendLine($"Most of the commands are also available as slash commands.");
+        sb.AppendLine("Most of the commands are also available as slash commands.");
         sb.AppendLine($"Try typing `{slashPrefix}` in the chat to see them.");
 
         sb.AppendLine();
@@ -81,6 +81,11 @@ public class HelpModule
         sb.AppendLine($"`{command} set-greeting-message [message]`");
         sb.AppendLine("`   Set the greeting message that Reifnir welcomes new users with.`");
         sb.AppendLine("`   Use the token $USER to @mention the new user in the message`");
+        sb.AppendLine();
+
+        sb.AppendLine($"`{command} set-quarantine-message [message]`");
+        sb.AppendLine("`   Set the quarantine message that Reifnir sends to quarantined users.`");
+        sb.AppendLine("`   Use the token $USER to @mention the quarantined user in the message`");
         sb.AppendLine();
 
         DiscordEmbed eb = EmbedBuilderHelper.BuildSimpleEmbed("Misc. admin commands", sb.ToString());
