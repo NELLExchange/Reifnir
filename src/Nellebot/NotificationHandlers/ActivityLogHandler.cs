@@ -168,24 +168,24 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
-        var totalChanges = 0;
+        var typeOfChangeCount = 0;
 
         GuildMemberUpdatedEventArgs args = notification.EventArgs;
 
-        int roleChanges = await CheckForRolesUpdate(args);
-        totalChanges += roleChanges;
+        bool rolesChanged = await CheckForRolesUpdate(args);
+        if (rolesChanged) typeOfChangeCount++;
 
         bool nicknameUpdated = await CheckForNicknameUpdate(args);
-        if (nicknameUpdated) totalChanges++;
+        if (nicknameUpdated) typeOfChangeCount++;
 
         bool usernameUpdated = await CheckForUsernameUpdate(args);
-        if (usernameUpdated) totalChanges++;
+        if (usernameUpdated) typeOfChangeCount++;
 
-        // Test if there actually are several changes in the same event
-        if (totalChanges > 2)
+        // Test if there actually are several types of changes in the same event
+        if (typeOfChangeCount > 2)
         {
             _discordLogger.LogExtendedActivityMessage(
-                $"{nameof(GuildMemberUpdatedNotification)} contained {totalChanges} changes");
+                $"{nameof(GuildMemberUpdatedNotification)} contained {typeOfChangeCount} types of changes");
         }
     }
 
@@ -447,8 +447,9 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         return true;
     }
 
-    private async Task<int> CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
+    private async Task<bool> CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
     {
+        var roleChanges = false;
         DiscordMember member = args.Member;
         string memberMention = member.Mention;
         string memberDisplayName = member.DisplayName;
@@ -457,10 +458,9 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         List<DiscordRole> removedRoles =
             args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
 
-        int roleChangesCount = addedRoles.Count + removedRoles.Count;
-
         if (addedRoles.Count > 0)
         {
+            roleChanges = true;
             string addedRolesNames = string.Join(", ", addedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Added roles to **{memberDisplayName}**: {addedRolesNames}");
 
@@ -472,6 +472,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         if (removedRoles.Count > 0)
         {
+            roleChanges = true;
             string removedRolesNames = string.Join(", ", removedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Removed roles from **{memberDisplayName}**: {removedRolesNames}");
 
@@ -490,7 +491,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             }
         }
 
-        return roleChangesCount;
+        return roleChanges;
     }
 
     private async Task<AppDiscordMessage?> MapAndEnrichMessage(DiscordMessage deletedMessage)
