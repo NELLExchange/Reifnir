@@ -33,6 +33,24 @@ public class TrustedMemberModule
         await _commandQueue.Writer.WriteAsync(new ValhallKickUserCommand(ctx, member, reason));
     }
 
+    // TODO register as menu command
+    [BaseCommandCheck]
+    [RequireTrustedMember]
+    [Command("quarantine")]
+    public async Task QuarantineUser(CommandContext ctx, DiscordMember member, [RemainingText] string reason)
+    {
+        await _commandQueue.Writer.WriteAsync(new QuarantineUserCommand(ctx, member, reason));
+    }
+
+    // TODO register as menu command
+    [BaseCommandCheck]
+    [RequireTrustedMember]
+    [Command("approve")]
+    public async Task ApproveUser(CommandContext ctx, DiscordMember member)
+    {
+        await _commandQueue.Writer.WriteAsync(new ApproveUserCommand(ctx, member));
+    }
+
     [BaseCommandCheck]
     [RequireTrustedMember]
     [Command("list-award-channels")]
@@ -47,9 +65,8 @@ public class TrustedMemberModule
         IReadOnlyList<DiscordChannel> guildChannels = await ctx.Guild!.GetChannelsAsync();
 
         IEnumerable<DiscordChannel> categoryChannels = guildChannels
-            .Where(
-                c => c.Type == DiscordChannelType.Category
-                     && groupIds.Contains(c.Id));
+            .Where(c => c.Type == DiscordChannelType.Category
+                        && groupIds.Contains(c.Id));
 
         foreach (DiscordChannel category in categoryChannels)
         {

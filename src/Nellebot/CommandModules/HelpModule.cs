@@ -45,7 +45,7 @@ public class HelpModule
 
         sb.AppendLine();
         sb.AppendLine("Staff commands:");
-        sb.AppendLine($"`{commandPrefix}help admin-misc`");
+        sb.AppendLine($"`{commandPrefix}help admin`");
         sb.AppendLine($"`{commandPrefix}help valhall`");
 
         sb.AppendLine();
@@ -67,8 +67,8 @@ public class HelpModule
         return ctx.RespondAsync(eb);
     }
 
-    [Command("admin-misc")]
-    public ValueTask HelpAdminMisc(CommandContext ctx)
+    [Command("admin")]
+    public ValueTask HelpAdmin(CommandContext ctx)
     {
         var sb = new StringBuilder();
 
@@ -94,19 +94,22 @@ public class HelpModule
     }
 
     [Command("valhall")]
-    public ValueTask HelpValhallMisc(CommandContext ctx)
+    public ValueTask HelpValhall(CommandContext ctx)
     {
         var sb = new StringBuilder();
 
         string commandPrefix = _options.CommandPrefix;
 
         sb.AppendLine($"`{commandPrefix}vkick [user] [reason]`");
-        sb.AppendLine("`   Kick a recently joined user with a fresh Discord account.`");
-        sb.AppendLine("`   Max 24hrs server memembership, max 7 days Discord account age.`");
+        sb.AppendLine("`   Kick a recently joined user (< 48hrs ago).`");
         sb.AppendLine();
 
-        sb.AppendLine($"`{commandPrefix}list-award-channels`");
-        sb.AppendLine("`   List the channels where Reifnir keeps track of cookies.`");
+        sb.AppendLine($"`{commandPrefix}quarantine [user] [reason]`");
+        sb.AppendLine("`   Quarantine a recently joined user (< 48hrs ago).`");
+        sb.AppendLine();
+
+        sb.AppendLine($"`{commandPrefix}approve [user]`");
+        sb.AppendLine("`   Approve a quarantined user.`");
         sb.AppendLine();
 
         sb.AppendLine($"`{commandPrefix}goodbye-msg add [message]`");
@@ -122,6 +125,10 @@ public class HelpModule
 
         sb.AppendLine($"`{commandPrefix}goodbye-msg list`");
         sb.AppendLine("`   List all goodbye message templates.`");
+        sb.AppendLine();
+
+        sb.AppendLine($"`{commandPrefix}list-award-channels`");
+        sb.AppendLine("`   List the channels where Reifnir keeps track of cookies.`");
         sb.AppendLine();
 
         DiscordEmbed eb = EmbedBuilderHelper.BuildSimpleEmbed("Misc. valhall commands", sb.ToString());
