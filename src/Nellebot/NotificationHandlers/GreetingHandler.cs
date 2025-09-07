@@ -154,7 +154,7 @@ public class GreetingHandler :
                                                              .GetAllMessageTemplates(GoodbyeMessageTemplateType),
                                                      TimeSpan
                                                          .FromMinutes(MessageTemplatesCacheDurationMinutes))
-                                                 ?? Enumerable.Empty<MessageTemplate>())
+                                                 ?? [])
             .ToList();
 
         if (goodbyeMessages.Count > 0)
