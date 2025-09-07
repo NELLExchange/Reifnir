@@ -49,6 +49,12 @@ public class AdminModule
         return _commandQueue.Writer.WriteAsync(new SetGreetingMessageCommand(ctx, message)).AsTask();
     }
 
+    [Command("set-quarantine-message")]
+    public Task SetQuarantineMessage(CommandContext ctx, [RemainingText] string message)
+    {
+        return _commandQueue.Writer.WriteAsync(new SetQuarantineMessageCommand(ctx, message)).AsTask();
+    }
+
     [Command("populate-messages")]
     public Task PopulateMessages(CommandContext ctx)
     {

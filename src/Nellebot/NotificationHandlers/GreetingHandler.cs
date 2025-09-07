@@ -92,7 +92,7 @@ public class GreetingHandler :
         DiscordMember newMember = notification.Member;
         string memberMention = newMember.Mention;
 
-        string? greetingMessage = await _botSettingsService.GetGreetingsMessage(memberMention);
+        string? greetingMessage = await _botSettingsService.GetGreetingMessage(memberMention);
 
         if (greetingMessage == null)
         {

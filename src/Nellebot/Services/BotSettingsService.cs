@@ -27,7 +27,7 @@ public class BotSettingsService
         _cache.FlushCache(SharedCacheKeys.GreetingMessage);
     }
 
-    public async Task<string?> GetGreetingsMessage(string userMention)
+    public async Task<string?> GetGreetingMessage(string userMention)
     {
         string? messageTemplate = await _cache.LoadFromCacheAsync(
             SharedCacheKeys.GreetingMessage,
