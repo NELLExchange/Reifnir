@@ -389,7 +389,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     public async Task Handle(MemberQuarantinedNotification notification, CancellationToken cancellationToken)
     {
         DiscordMember member = notification.Member;
-        string memberIdentifier = member.GetDetailedMemberIdentifier();
+        string memberIdentifier = member.GetDetailedMemberIdentifier(useMention: true);
         string memberMention = member.Mention;
         DiscordMember memberResponsible = notification.MemberResponsible;
         string reason = notification.Reason;

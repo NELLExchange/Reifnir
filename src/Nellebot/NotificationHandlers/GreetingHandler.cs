@@ -15,12 +15,14 @@ using Nellebot.Services.Loggers;
 namespace Nellebot.NotificationHandlers;
 
 public class GreetingHandler :
-    INotificationHandler<MemberApprovedNotification>,
     INotificationHandler<GuildMemberRemovedNotification>,
-    INotificationHandler<BufferedMemberLeftNotification>
+    INotificationHandler<BufferedMemberLeftNotification>,
+    INotificationHandler<MemberApprovedNotification>,
+    INotificationHandler<MemberQuarantinedNotification>
 {
     private const int MaxUsernamesToDisplay = 100;
     private const string FallbackGreetingMessage = "Welcome, $USER!";
+    private const string FallbackQuarantineMessage = "Welcome to quarantine, $USER!";
     private const string GoodbyeMessageTemplateType = "goodbye";
     private const string FallbackGoodbyeMessageTemplate = "$USER has left. Goodbye!";
     private const int MessageTemplatesCacheDurationMinutes = 5;
@@ -102,6 +104,23 @@ public class GreetingHandler :
         }
 
         _discordLogger.LogGreetingMessage(greetingMessage);
+    }
+
+    public async Task Handle(MemberQuarantinedNotification notification, CancellationToken cancellationToken)
+    {
+        DiscordMember newMember = notification.Member;
+        string memberMention = newMember.Mention;
+
+        string? quarantineMessage = await _botSettingsService.GetQuarantineMessage(memberMention);
+
+        if (quarantineMessage == null)
+        {
+            quarantineMessage = FallbackQuarantineMessage;
+
+            _discordErrorLogger.LogError("Quarantine message couldn't be retrieved");
+        }
+
+        _discordLogger.LogQuarantineMessage(quarantineMessage);
     }
 
     public Task Handle(GuildMemberRemovedNotification notification, CancellationToken cancellationToken)
