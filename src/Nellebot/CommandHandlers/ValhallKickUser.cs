@@ -4,21 +4,26 @@ using System.Threading.Tasks;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
+using DSharpPlus.Interactivity;
 using MediatR;
 using Microsoft.Extensions.Options;
 using Nellebot.Utils;
 
 namespace Nellebot.CommandHandlers;
 
-public record ValhallKickUserCommand(CommandContext Ctx, DiscordMember Member, string Reason)
+public record ValhallKickUserCommand(CommandContext Ctx, DiscordMember Member, string? Reason)
     : BotCommandCommand(Ctx);
 
 public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 {
+    private readonly InteractivityExtension _interactivityExtension;
+    private const string ModalTextInputId = "modal-text-input";
     private readonly BotOptions _options;
 
-    public ValhallKickUserHandler(IOptions<BotOptions> options)
+    public ValhallKickUserHandler(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
     {
+        _interactivityExtension = interactivityExtension;
         _options = options.Value;
     }
 
@@ -30,7 +35,7 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 
         if (ctx.Member?.Id == targetMember.Id)
         {
-            await TryRespondEphemeral(ctx, "Hmm");
+            await ctx.TryRespondEphemeral("Hmm");
             return;
         }
 
@@ -43,24 +48,58 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
             var content =
                 $"You cannot vkick this user. They have been a member of the server for more than {maxAgeHours} hours.";
 
-            await TryRespondEphemeral(ctx, content);
+            await ctx.TryRespondEphemeral(content);
 
             return;
         }
 
-        var kickReason =
-            $"Kicked on behalf of {currentMember.DisplayName}. Reason: {request.Reason.NullOrWhiteSpaceTo("/shrug")}";
+        DiscordInteraction? modalInteraction = null;
+        string? kickReason = null;
 
-        await targetMember.RemoveAsync(kickReason);
+        if (ctx is SlashCommandContext slashCtx && request.Reason == null)
+        {
+            ModalSubmittedEventArgs modalSubmissionResult = await ShowGetReasonModal(slashCtx);
 
-        await TryRespondEphemeral(ctx, "User vkicked successfully");
+            modalInteraction = modalSubmissionResult.Interaction;
+
+            kickReason = modalSubmissionResult.Values[ModalTextInputId];
+
+            await modalInteraction.DeferAsync(ephemeral: true);
+        }
+
+        kickReason = kickReason.NullOrWhiteSpaceTo("/shrug");
+
+        var onBehalfOfReason =
+            $"Kicked on behalf of {currentMember.DisplayName}. Reason: {kickReason}";
+
+        await targetMember.RemoveAsync(onBehalfOfReason);
+
+        await ctx.TryRespondEphemeral("User vkicked successfully", modalInteraction);
     }
 
-    private static async Task TryRespondEphemeral(CommandContext ctx, string successMessage)
+    private async Task<ModalSubmittedEventArgs> ShowGetReasonModal(SlashCommandContext ctx)
     {
-        if (ctx is SlashCommandContext slashCtx)
-            await slashCtx.RespondAsync(successMessage, true);
-        else
-            await ctx.RespondAsync(successMessage);
+        var modalId = $"get-reason-modal-{Guid.NewGuid()}";
+
+        DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
+            .WithTitle("Valhall kick user")
+            .WithCustomId(modalId)
+            .AddTextInputComponent(
+                new DiscordTextInputComponent(
+                    "Reason",
+                    ModalTextInputId,
+                    "Write a reason for kicking",
+                    string.Empty,
+                    required: true,
+                    DiscordTextInputStyle.Paragraph,
+                    min_length: 0,
+                    DiscordConstants.MaxAuditReasonLength));
+
+        await ctx.RespondWithModalAsync(interactionBuilder);
+
+        InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
+            await _interactivityExtension.WaitForModalAsync(modalId, DiscordConstants.MaxDeferredInteractionWait);
+
+        return modalSubmission.Result;
     }
 }

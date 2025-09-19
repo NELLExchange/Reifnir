@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.ArgumentModifiers;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Options;
 using Nellebot.Attributes;
@@ -24,29 +26,59 @@ public class TrustedMemberModule
         _options = options.Value;
     }
 
-    // TODO register as menu command
     [BaseCommandCheck]
     [RequireTrustedMember]
     [Command("vkick")]
+    [Description("Valhall kick user")]
     public async Task ValhallKick(CommandContext ctx, DiscordMember member, [RemainingText] string reason)
     {
         await _commandQueue.Writer.WriteAsync(new ValhallKickUserCommand(ctx, member, reason));
     }
 
-    // TODO register as menu command
+    [BaseCommandCheck]
+    [RequireTrustedMember]
+    [Command("VKick user")]
+    [Description("Valhall kick user")]
+    [SlashCommandTypes(DiscordApplicationCommandType.UserContextMenu)]
+    public async Task ValhallKickMenu(SlashCommandContext ctx, DiscordMember member)
+    {
+        await _commandQueue.Writer.WriteAsync(new ValhallKickUserCommand(ctx, member, Reason: null));
+    }
+
     [BaseCommandCheck]
     [RequireTrustedMember]
     [Command("quarantine")]
+    [Description("Quarantine user")]
     public async Task QuarantineUser(CommandContext ctx, DiscordMember member, [RemainingText] string reason)
     {
         await _commandQueue.Writer.WriteAsync(new QuarantineUserCommand(ctx, member, reason));
     }
 
-    // TODO register as menu command
+    [BaseCommandCheck]
+    [RequireTrustedMember]
+    [Command("Quarantine user")]
+    [Description("Quarantine user")]
+    [SlashCommandTypes(DiscordApplicationCommandType.UserContextMenu)]
+    public async Task QuarantineUserMenu(SlashCommandContext ctx, DiscordMember member)
+    {
+        await _commandQueue.Writer.WriteAsync(new QuarantineUserCommand(ctx, member, Reason: null));
+    }
+
     [BaseCommandCheck]
     [RequireTrustedMember]
     [Command("approve")]
+    [Description("Approve user")]
     public async Task ApproveUser(CommandContext ctx, DiscordMember member)
+    {
+        await _commandQueue.Writer.WriteAsync(new ApproveUserCommand(ctx, member));
+    }
+
+    [BaseCommandCheck]
+    [RequireTrustedMember]
+    [Command("Approve user")]
+    [Description("Approve user")]
+    [SlashCommandTypes(DiscordApplicationCommandType.UserContextMenu)]
+    public async Task ApproveUserMenu(SlashCommandContext ctx, DiscordMember member)
     {
         await _commandQueue.Writer.WriteAsync(new ApproveUserCommand(ctx, member));
     }

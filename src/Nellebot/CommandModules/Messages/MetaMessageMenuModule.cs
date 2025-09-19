@@ -26,6 +26,8 @@ public class MetaMessageMenuModule
         await _commandQueue.Writer.WriteAsync(new AddMetaMessageCommand(ctx, ctx.Channel, message));
     }
 
+    [BaseCommandCheck]
+    [RequireTrustedMember]
     [Command("Edit meta message")]
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
     public async Task EditMessage(SlashCommandContext ctx, DiscordMessage message)
