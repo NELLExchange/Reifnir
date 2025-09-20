@@ -6,6 +6,8 @@ public static class SharedCacheKeys
 
     public static string GreetingMessage => "GreetingMessage";
 
+    public static string QuarantineMessage => "QuarantineMessage";
+
     public static string GoodbyeMessages => "GoodbyeMessages";
 
     public static string UserLog => "UserLog_{0}_{1}";

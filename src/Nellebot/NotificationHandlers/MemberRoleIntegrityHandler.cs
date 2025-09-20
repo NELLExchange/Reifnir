@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nellebot.Jobs;
+using Nellebot.Services;
+using Nellebot.Utils;
 using Quartz;
 
 namespace Nellebot.NotificationHandlers;
@@ -17,20 +19,48 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
 {
     private readonly ILogger<MemberRoleIntegrityHandler> _logger;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly DiscordResolver _discordResolver;
+    private readonly QuarantineService _quarantineService;
     private readonly BotOptions _options;
 
     public MemberRoleIntegrityHandler(
         ILogger<MemberRoleIntegrityHandler> logger,
         IOptions<BotOptions> options,
-        ISchedulerFactory schedulerFactory)
+        ISchedulerFactory schedulerFactory,
+        DiscordResolver discordResolver,
+        QuarantineService quarantineService)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
+        _discordResolver = discordResolver;
+        _quarantineService = quarantineService;
         _options = options.Value;
     }
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
+        GuildMemberUpdatedEventArgs args = notification.EventArgs;
+        List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
+        List<DiscordRole> removedRoles =
+            args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
+
+        int roleChangesCount = addedRoles.Count + removedRoles.Count;
+
+        if (roleChangesCount == 0) return;
+
+        DiscordMember member = args.Member ?? throw new Exception(nameof(member));
+        DiscordGuild guild = args.Guild;
+
+        ulong[] memberRoleIds = _options.MemberRoleIds;
+        ulong memberRoleId = _options.MemberRoleId;
+        ulong ghostRoleId = _options.GhostRoleId;
+        ulong quarantineRoleId = _options.QuarantineRoleId;
+
+        await QuarantineIfSpammer(member, addedRoles);
+
+        // TODO handle this in a more robust way.
+        // Either pause the job, if possible, or just let it run
+        // and make sure it doesn't clash with this notification handler.
         IScheduler scheduler = await _schedulerFactory.GetScheduler(cancellationToken);
         IReadOnlyCollection<IJobExecutionContext> jobs = await scheduler.GetCurrentlyExecutingJobs(cancellationToken);
         bool roleMaintenanceIsRunning = jobs.Any(j => Equals(j.JobDetail.Key, RoleMaintenanceJob.Key));
@@ -41,48 +71,46 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
             return;
         }
 
-        bool memberRolesChanged = notification.EventArgs.RolesBefore.Count != notification.EventArgs.RolesAfter.Count;
+        await MaintainMemberRole(guild, memberRoleId, member, memberRoleIds, quarantineRoleId);
 
-        if (!memberRolesChanged) return;
-
-        ulong[] memberRoleIds = _options.MemberRoleIds;
-        ulong memberRoleId = _options.MemberRoleId;
-        ulong ghostRoleId = _options.GhostRoleId;
-
-        DiscordMember? member = notification.EventArgs.Member;
-
-        if (member is null) throw new Exception(nameof(member));
-
-        DiscordGuild guild = notification.EventArgs.Guild;
-
-        await EnsureMemberRole(guild, memberRoleId, member, memberRoleIds);
-
-        await EnsureGhostRole(guild, ghostRoleId, member);
+        await MaintainGhostRole(guild, ghostRoleId, member);
     }
 
-    private static async Task EnsureMemberRole(
+    /// <summary>
+    /// Ensures that the member role is added if the user has any of the member roles,
+    /// and removed if the user has none of the member roles
+    /// </summary>
+    private static async Task MaintainMemberRole(
         DiscordGuild guild,
         ulong memberRoleId,
         DiscordMember member,
-        ulong[] memberRoleIds)
+        ulong[] memberRoleIds,
+        ulong quarantineRoleId)
     {
         DiscordRole memberRole = guild.Roles[memberRoleId]
                                  ?? throw new Exception($"Could not find member role with id {memberRoleId}");
 
-        bool userShouldHaveMemberRole = member.Roles.Any(r => memberRoleIds.Contains(r.Id));
+        bool userHasMandatoryRoles = member.Roles.Any(r => memberRoleIds.Contains(r.Id));
         bool userHasMemberRole = member.Roles.Any(r => r.Id == memberRoleId);
+        bool userHasQuarantineRole = member.Roles.Any(r => r.Id == quarantineRoleId);
 
-        if (userShouldHaveMemberRole && !userHasMemberRole)
+        bool userIsEligibleForMemberRole = userHasMandatoryRoles && !userHasQuarantineRole;
+
+        if (!userHasMemberRole && userIsEligibleForMemberRole)
         {
             await member.GrantRoleAsync(memberRole);
         }
-        else if (!userShouldHaveMemberRole && userHasMemberRole)
+        else if (userHasMemberRole && !userIsEligibleForMemberRole)
         {
             await member.RevokeRoleAsync(memberRole);
         }
     }
 
-    private static async Task EnsureGhostRole(DiscordGuild guild, ulong ghostRoleId, DiscordMember member)
+    /// <summary>
+    /// Ensures that the ghost role is added if the user has no roles,
+    /// and removed if the user has any other roles
+    /// </summary>
+    private static async Task MaintainGhostRole(DiscordGuild guild, ulong ghostRoleId, DiscordMember member)
     {
         DiscordRole ghostRole = guild.Roles[ghostRoleId]
                                 ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
@@ -102,5 +130,24 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         {
             await member.RevokeRoleAsync(ghostRole);
         }
+    }
+
+    private async Task QuarantineIfSpammer(DiscordMember member, List<DiscordRole> addedRoles)
+    {
+        ulong spammerRoleId = _options.SpammerRoleId;
+
+        TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - member.JoinedAt;
+        DiscordRole? addedSpammerRole = addedRoles.FirstOrDefault(r => r.Id == spammerRoleId);
+        bool hasChosenSpammerRole = addedSpammerRole is not null;
+        const int maxJoinAgeForAutomatedQuarantineDays = 7;
+
+        bool shouldQuarantineSpammer = hasChosenSpammerRole
+                                       && memberJoinedAgo < TimeSpan.FromDays(maxJoinAgeForAutomatedQuarantineDays);
+
+        if (!shouldQuarantineSpammer) return;
+
+        var quarantineReason = $"User is a **{addedSpammerRole!.Name}**";
+        DiscordMember botMember = _discordResolver.GetBotMember();
+        await _quarantineService.QuarantineMember(member, botMember, quarantineReason);
     }
 }

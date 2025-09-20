@@ -13,13 +13,13 @@ public class GoodbyeMessageBuffer
 {
     private const int DelayInMs = 5000;
 
-    private readonly MessageBuffer _buffer;
+    private readonly BatchingBuffer<string> _buffer;
     private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly NotificationPublisher _notificationPublisher;
 
     public GoodbyeMessageBuffer(IDiscordErrorLogger discordErrorLogger, NotificationPublisher notificationPublisher)
     {
-        _buffer = new MessageBuffer(DelayInMs, PublishBufferedEvent);
+        _buffer = new BatchingBuffer<string>(DelayInMs, PublishBufferedEvent);
         _discordErrorLogger = discordErrorLogger;
         _notificationPublisher = notificationPublisher;
     }

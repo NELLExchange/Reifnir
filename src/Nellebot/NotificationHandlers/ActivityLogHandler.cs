@@ -20,13 +20,18 @@ using Nellebot.Utils;
 
 namespace Nellebot.NotificationHandlers;
 
+/// <summary>
+/// This class logs stuff to log channels
+/// </summary>
 public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification>,
     INotificationHandler<GuildBanRemovedNotification>,
     INotificationHandler<MessageDeletedNotification>,
     INotificationHandler<MessageBulkDeletedNotification>,
     INotificationHandler<GuildMemberAddedNotification>,
     INotificationHandler<GuildMemberRemovedNotification>,
-    INotificationHandler<GuildMemberUpdatedNotification>
+    INotificationHandler<GuildMemberUpdatedNotification>,
+    INotificationHandler<MemberApprovedNotification>,
+    INotificationHandler<MemberQuarantinedNotification>
 {
     private readonly BotOptions _botOptions;
     private readonly IDiscordErrorLogger _discordErrorLogger;
@@ -163,24 +168,24 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
-        var totalChanges = 0;
+        var typeOfChangeCount = 0;
 
         GuildMemberUpdatedEventArgs args = notification.EventArgs;
 
-        int roleChanges = CheckForRolesUpdate(args);
-        totalChanges += roleChanges;
+        bool rolesChanged = await CheckForRolesUpdate(args);
+        if (rolesChanged) typeOfChangeCount++;
 
         bool nicknameUpdated = await CheckForNicknameUpdate(args);
-        if (nicknameUpdated) totalChanges++;
+        if (nicknameUpdated) typeOfChangeCount++;
 
         bool usernameUpdated = await CheckForUsernameUpdate(args);
-        if (usernameUpdated) totalChanges++;
+        if (usernameUpdated) typeOfChangeCount++;
 
-        // Test if there actually are several changes in the same event
-        if (totalChanges > 2)
+        // Test if there actually are several types of changes in the same event
+        if (typeOfChangeCount > 2)
         {
             _discordLogger.LogExtendedActivityMessage(
-                $"{nameof(GuildMemberUpdatedNotification)} contained {totalChanges} changes");
+                $"{nameof(GuildMemberUpdatedNotification)} contained {typeOfChangeCount} types of changes");
         }
     }
 
@@ -369,10 +374,39 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         _discordLogger.LogExtendedActivityMessage(logMessage);
     }
 
+    public async Task Handle(MemberApprovedNotification notification, CancellationToken cancellationToken)
+    {
+        DiscordMember member = notification.Member;
+        DiscordMember memberResponsible = notification.MemberResponsible;
+        string memberMention = member.Mention;
+
+        _discordLogger.LogExtendedActivityMessage(
+            $"{memberMention} has been approved by **{memberResponsible.DisplayName}**.");
+
+        await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
+    }
+
+    public async Task Handle(MemberQuarantinedNotification notification, CancellationToken cancellationToken)
+    {
+        DiscordMember member = notification.Member;
+        string memberIdentifier = member.GetDetailedMemberIdentifier(useMention: true);
+        string memberMention = member.Mention;
+        DiscordMember memberResponsible = notification.MemberResponsible;
+        string reason = notification.Reason;
+
+        _discordLogger.LogTrustedChannelMessage(
+            $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {reason}.");
+
+        _discordLogger.LogExtendedActivityMessage(
+            $"{memberMention} has been quarantined by **{memberResponsible.DisplayName}**.");
+
+        await _userLogService.CreateUserLog(member.Id, reason, UserLogType.Quarantined);
+    }
+
     private async Task<bool> CheckForUsernameUpdate(GuildMemberUpdatedEventArgs args)
     {
         string? usernameAfter = args.MemberAfter.GetFullUsername();
-        string? usernameBefore = args.MemberBefore?.GetFullUsername();
+        string? usernameBefore = args.MemberBefore.GetFullUsername();
 
         if (string.IsNullOrWhiteSpace(usernameBefore) || usernameBefore == usernameAfter)
         {
@@ -404,67 +438,60 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         // TODO check if member's nickname was changed by moderator
         if (nicknameBefore == nicknameAfter) return false;
 
-        var message =
-            $"Nickname change for {args.Member.Mention}. {nicknameBefore ?? "*no nickname*"} => {nicknameAfter ?? "*no nickname*"}.";
-
-        _discordLogger.LogExtendedActivityMessage(message);
+        const string noNickname = "*no nickname*";
+        _discordLogger.LogExtendedActivityMessage(
+            $"Nickname change for {args.Member.Mention}. {nicknameBefore ?? noNickname} => {nicknameAfter ?? noNickname}.");
 
         await _userLogService.CreateUserLog(args.Member.Id, nicknameAfter, UserLogType.NicknameChange);
 
         return true;
     }
 
-    private int CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
+    private async Task<bool> CheckForRolesUpdate(GuildMemberUpdatedEventArgs args)
     {
+        var roleChanges = false;
+        DiscordMember member = args.Member;
+        string memberMention = member.Mention;
+        string memberDisplayName = member.DisplayName;
+
         List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
         List<DiscordRole> removedRoles =
             args.RolesBefore.ExceptBy(args.RolesAfter.Select(r => r.Id), x => x.Id).ToList();
 
-        string memberMention = args.Member.Mention;
-        string memberDisplayName = args.Member.DisplayName;
-        string memberDetailedIdentifier = args.Member.GetDetailedMemberIdentifier(true);
-
-        int roleChangesCount = addedRoles.Count + removedRoles.Count;
-
-        var warningMessage = new StringBuilder();
-
         if (addedRoles.Count > 0)
         {
+            roleChanges = true;
             string addedRolesNames = string.Join(", ", addedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Added roles to **{memberDisplayName}**: {addedRolesNames}");
 
             foreach (DiscordRole addedRole in addedRoles)
             {
                 _discordLogger.LogExtendedActivityMessage($"Role change for {memberMention}: Added {addedRole.Name}.");
-
-                if (addedRole.Id == _botOptions.SpammerRoleId)
-                {
-                    warningMessage.AppendLine($"Awoooooo! **{memberDetailedIdentifier}** is a **{addedRole.Name}**.");
-                }
             }
         }
 
         if (removedRoles.Count > 0)
         {
+            roleChanges = true;
             string removedRolesNames = string.Join(", ", removedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Removed roles from **{memberDisplayName}**: {removedRolesNames}");
+
+            ulong quarantineRoleId = _botOptions.QuarantineRoleId;
+            DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
 
             foreach (DiscordRole removedRole in removedRoles)
             {
                 _discordLogger.LogExtendedActivityMessage(
                     $"Role change for {memberMention}: Removed {removedRole.Name}.");
+
+                if (quarantineRole is not null && removedRole.Id == quarantineRole.Id)
+                {
+                    await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
+                }
             }
         }
 
-        if (addedRoles.Count > 2)
-        {
-            warningMessage.AppendLine(
-                $"Awoooooo! **{memberDetailedIdentifier}** chose more than 2 roles in one go. Possibly bot.");
-        }
-
-        if (warningMessage.Length > 0) _discordLogger.LogTrustedChannelMessage(warningMessage.ToString().TrimEnd());
-
-        return roleChangesCount;
+        return roleChanges;
     }
 
     private async Task<AppDiscordMessage?> MapAndEnrichMessage(DiscordMessage deletedMessage)

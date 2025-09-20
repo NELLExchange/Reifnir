@@ -110,6 +110,7 @@ static void AddInternalServices(IServiceCollection services)
     services.AddTransient<BotSettingsService>();
     services.AddTransient<MessageRefsService>();
     services.AddTransient<UserLogService>();
+    services.AddTransient<QuarantineService>();
 }
 
 static void AddChannels(IServiceCollection services)

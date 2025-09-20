@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using MediatR;
 
@@ -41,3 +42,8 @@ public record ClientConnected(SocketOpenedEventArgs EventArgs) : EventNotificati
 public record ClientDisconnected(SocketClosedEventArgs EventArgs) : EventNotification;
 
 public record BufferedMemberLeftNotification(IEnumerable<string> Usernames) : EventNotification;
+
+public record MemberQuarantinedNotification(DiscordMember Member, DiscordMember MemberResponsible, string Reason)
+    : EventNotification;
+
+public record MemberApprovedNotification(DiscordMember Member, DiscordMember MemberResponsible) : EventNotification;

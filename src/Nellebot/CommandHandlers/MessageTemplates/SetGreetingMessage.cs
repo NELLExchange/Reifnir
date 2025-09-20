@@ -36,7 +36,7 @@ public class SetGreetingMessageHandler : IRequestHandler<SetGreetingMessageComma
 
         string previewMemberMention = ctx.Member?.Mention ?? string.Empty;
 
-        string? messagePreview = await _botSettingsService.GetGreetingsMessage(previewMemberMention);
+        string? messagePreview = await _botSettingsService.GetGreetingMessage(previewMemberMention);
 
         var sb = new StringBuilder("Greeting message updated successfully. Here's a preview:");
         sb.AppendLine();

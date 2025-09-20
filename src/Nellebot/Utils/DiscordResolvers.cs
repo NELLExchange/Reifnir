@@ -46,6 +46,20 @@ public class DiscordResolver
         return TryResolveResult<DiscordRole>.FromValue(discordRole);
     }
 
+    public DiscordRole? ResolveRole(ulong discordRoleId)
+    {
+        DiscordGuild guild = ResolveGuild();
+
+        if (guild.Roles.TryGetValue(discordRoleId, out DiscordRole? role))
+        {
+            return role;
+        }
+
+        _discordErrorLogger.LogError($"Couldn't resolve role with ID {discordRoleId}");
+
+        return null;
+    }
+
     public DiscordThreadChannel? ResolveThread(ulong threadId)
     {
         DiscordGuild guild = ResolveGuild();
@@ -138,7 +152,7 @@ public class DiscordResolver
         Func<T, bool> predicate)
         where T : DiscordAuditLogEntry
     {
-        await foreach (DiscordAuditLogEntry entry in guild.GetAuditLogsAsync(50, null!, logType))
+        await foreach (DiscordAuditLogEntry entry in guild.GetAuditLogsAsync(limit: 50, null!, logType))
         {
             if (entry is T tEntry && predicate(tEntry))
             {
@@ -156,7 +170,7 @@ public class DiscordResolver
         int maxAgeMinutes = 1)
         where T : DiscordAuditLogEntry
     {
-        await foreach (DiscordAuditLogEntry entry in guild.GetAuditLogsAsync(50, null!, logType))
+        await foreach (DiscordAuditLogEntry entry in guild.GetAuditLogsAsync(limit: 50, null!, logType))
         {
             if (entry.CreationTimestamp < DateTimeOffset.UtcNow.AddMinutes(-maxAgeMinutes)) continue;
 
@@ -164,5 +178,11 @@ public class DiscordResolver
         }
 
         return TryResolveResult<T>.FromError("Audit log entry not found");
+    }
+
+    public DiscordMember GetBotMember()
+    {
+        DiscordGuild guild = ResolveGuild();
+        return guild.CurrentMember;
     }
 }

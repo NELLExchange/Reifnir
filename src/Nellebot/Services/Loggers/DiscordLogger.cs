@@ -23,6 +23,11 @@ public class DiscordLogger
         LogMessageCore(message, _options.GreetingsChannelId);
     }
 
+    public void LogQuarantineMessage(string message)
+    {
+        LogMessageCore(message, _options.QuarantineChannelId);
+    }
+
     public void LogActivityMessage(string message)
     {
         LogMessageCore(message, _options.ActivityLogChannelId, suppressNotifications: true);

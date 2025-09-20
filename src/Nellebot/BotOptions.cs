@@ -58,6 +58,10 @@ public class BotOptions
 
     public ulong GhostRoleId { get; init; }
 
+    public ulong QuarantineRoleId { get; init; }
+
+    public ulong QuarantineChannelId { get; init; }
+
     /// <summary>
     ///     Gets a value indicating whether feature flag for populating message refs on Ready event.
     /// </summary>

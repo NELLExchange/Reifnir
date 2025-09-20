@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 
 namespace Nellebot.Utils;
@@ -51,7 +53,7 @@ public static class DiscordExtensions
         return string.Join(DiscordConstants.NewLineChar, quotedLines);
     }
 
-    public static string NullOrWhiteSpaceTo(this string input, string fallback)
+    public static string NullOrWhiteSpaceTo(this string? input, string fallback)
     {
         return !string.IsNullOrWhiteSpace(input) ? input : fallback;
     }
@@ -70,14 +72,12 @@ public static class DiscordExtensions
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, string content)
     {
-        return channel.SendMessageAsync(
-            x => { x.WithContent(content).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.WithContent(content).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(this DiscordChannel channel, DiscordEmbed embed)
     {
-        return channel.SendMessageAsync(
-            x => { x.AddEmbed(embed).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.AddEmbed(embed).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(
@@ -85,8 +85,7 @@ public static class DiscordExtensions
         string content,
         DiscordEmbed embed)
     {
-        return channel.SendMessageAsync(
-            x => { x.WithContent(content).AddEmbed(embed).SuppressNotifications(); });
+        return channel.SendMessageAsync(x => { x.WithContent(content).AddEmbed(embed).SuppressNotifications(); });
     }
 
     public static Task<DiscordMessage> SendSuppressedMessageAsync(
@@ -94,5 +93,43 @@ public static class DiscordExtensions
         DiscordMessageBuilder builder)
     {
         return channel.SendMessageAsync(builder.SuppressNotifications());
+    }
+
+    public static bool IsUserAssignable(this DiscordRole role)
+    {
+        return role.Flags.HasFlag(DiscordRoleFlags.InPrompt);
+    }
+
+    public static async Task TryRespondEphemeral(
+        this CommandContext ctx,
+        string successMessage,
+        DiscordInteraction? modalInteraction)
+    {
+        if (ctx is SlashCommandContext slashCtx)
+        {
+            if (modalInteraction is null)
+            {
+                await slashCtx.RespondAsync(successMessage, ephemeral: true);
+            }
+            else
+            {
+                DiscordFollowupMessageBuilder followupBuilder = new DiscordFollowupMessageBuilder()
+                    .WithContent(successMessage)
+                    .AsEphemeral();
+
+                await modalInteraction.CreateFollowupMessageAsync(followupBuilder);
+            }
+        }
+        else
+        {
+            await ctx.RespondAsync(successMessage);
+        }
+    }
+
+    public static Task TryRespondEphemeral(
+        this CommandContext ctx,
+        string successMessage)
+    {
+        return Task.FromResult(ctx.TryRespondEphemeral(successMessage, modalInteraction: null));
     }
 }

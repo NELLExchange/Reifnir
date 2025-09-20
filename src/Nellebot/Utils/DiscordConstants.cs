@@ -7,6 +7,7 @@ public static class DiscordConstants
     public const int MaxMessageLength = 2000;
     public const int MaxEmbedContentLength = 4096;
     public const int MaxThreadTitleLength = 100;
+    public const int MaxAuditReasonLength = 512;
     public const int DefaultEmbedColor = 2346204; // #23ccdc
     public const int ErrorEmbedColor = 14431557; // #dc3545
     public const int WarningEmbedColor = 16612884; // #fd7e14

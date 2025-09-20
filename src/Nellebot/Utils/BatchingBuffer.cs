@@ -6,24 +6,24 @@ using System.Threading.Tasks;
 
 namespace Nellebot.Utils;
 
-public class MessageBuffer
+public class BatchingBuffer<T>
 {
-    private readonly Func<IEnumerable<string>, Task> _callback;
+    private readonly Func<IEnumerable<T>, Task> _callback;
     private readonly int _delayMillis;
     private readonly object _lockObject;
-    private readonly ConcurrentQueue<string> _messageQueue;
+    private readonly ConcurrentQueue<T> _messageQueue;
     private readonly Timer _timer;
 
-    public MessageBuffer(int delayMillis, Func<IEnumerable<string>, Task> callback)
+    public BatchingBuffer(int delayMillis, Func<IEnumerable<T>, Task> callback)
     {
-        _messageQueue = new ConcurrentQueue<string>();
+        _messageQueue = new ConcurrentQueue<T>();
         _delayMillis = delayMillis;
         _callback = callback;
         _lockObject = new object();
-        _timer = new Timer(InvokeCallback, null, Timeout.Infinite, Timeout.Infinite);
+        _timer = new Timer(InvokeCallback, state: null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public void AddMessage(string message)
+    public void AddMessage(T message)
     {
         _messageQueue.Enqueue(message);
         _timer.Change(_delayMillis, Timeout.Infinite);
@@ -33,9 +33,9 @@ public class MessageBuffer
     {
         lock (_lockObject)
         {
-            var allMessages = new List<string>();
+            var allMessages = new List<T>();
 
-            while (_messageQueue.TryDequeue(out string? message))
+            while (_messageQueue.TryDequeue(out T? message))
             {
                 allMessages.Add(message);
             }
@@ -44,7 +44,7 @@ public class MessageBuffer
         }
     }
 
-    private async Task InvokeCallbackAsync(IEnumerable<string> messages)
+    private async Task InvokeCallbackAsync(IEnumerable<T> messages)
     {
         await _callback.Invoke(messages).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
     }
