@@ -9,11 +9,11 @@ using Nellebot.Workers;
 
 namespace Nellebot.CommandModules;
 
-public class OrdbokSlashModule
+public class OrdbokModule
 {
     private readonly RequestQueueChannel _requestQueue;
 
-    public OrdbokSlashModule(RequestQueueChannel commandQueue)
+    public OrdbokModule(RequestQueueChannel commandQueue)
     {
         _requestQueue = commandQueue;
     }
@@ -26,7 +26,7 @@ public class OrdbokSlashModule
         [Parameter("query")] [Description("What to search for")]
         string query)
     {
-        var searchOrdbokRequest = new SearchOrdbokQueryV2(ctx)
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
             Dictionary = OrdbokDictionaryMap.Bokmal,
             Query = query,
@@ -43,7 +43,7 @@ public class OrdbokSlashModule
         [Parameter("query")] [Description("What to search for")]
         string query)
     {
-        var searchOrdbokRequest = new SearchOrdbokQueryV2(ctx)
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
             Dictionary = OrdbokDictionaryMap.Nynorsk,
             Query = query,

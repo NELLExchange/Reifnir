@@ -71,7 +71,6 @@ Optionally, pass the `--profile tools` flag to include a PgAdmin container.
 
 * [DSharp+](https://github.com/DSharpPlus/DSharpPlus) .net discord wrapper
 * [Scriban](https://github.com/scriban/scriban) used for generating text and html templates
-* [WkHtmlToPdf](https://github.com/wkhtmltopdf/wkhtmltopdf) used for rendering images from html
 * [MediatR](https://github.com/jbogard/MediatR) used in CQRS pattern implementation
 * [Universitetet i Bergen og Språkrådet](https://www.uib.no) for the Ordbok API
 * [Npgsql](https://github.com/npgsql/npgsql) .net data provider for PostgreSQL

@@ -1,21 +1,12 @@
-﻿{{for article in articles-}}
-{{for lemma in article.lemmas-}}
-{{lemma.hg_no_roman != "" ? lemma.hg_no_roman + " " : ""}}**{{lemma.value}}**
-{{-for paradigm in lemma.unique_paradigm_values}} {{paradigm}}
-{{-if !for.last; ","; end}}
-{{-end}}
-{{-if !for.last; "; el. "; end}}
-{{-end}}
-{{-if article.etymologies.size > 0; " (" ; end-}}
-{{for etymology in article.etymologies-}}
-{{etymology.content}}{{if !for.last; ", "; end}}
-{{-end-}}
-{{if article.etymologies.size > 0; ")" ;end}}
+﻿{{for article in articles~}}
+{{for.index + pagination.page_offset}}. {{for lemma in article.lemmas-}}**{{lemma.value}}**{{if !for.last; ", "; end}}{{end}}
+{{article.paradigm.word_class | string.upcase}}{{article.paradigm.inflection_class ? " *" + article.paradigm.inflection_class + "*": ""}}
 {{for definition in article.definitions | array.limit max_definitions -}}
-{{if definition.explanations.size > 0 -}}
-**{{for.index + 1}}** {{for explanation in definition.explanations-}}{{explanation}}{{if !for.last; "; "; end}}{{end}}
-{{end-}}
+{{if definition.explanations.size > 0 ~}}
+* {{for explanation in definition.explanations_simple-}}{{explanation}}{{if !for.last; "; "; end}}{{end}}
 {{end~}}
-{{~if article.definitions.size > max_definitions; "[...]"; end~}}
+{{end~}}
+{{if article.definitions.size > max_definitions; "[...]\r\n"; end~}}
 
-{{end}}
+{{~end~}}
+**Side {{pagination.current_page}} av {{pagination.page_count}}**

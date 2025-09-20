@@ -5,32 +5,16 @@ using Scriban;
 
 namespace Nellebot.Services;
 
-public enum ScribanTemplateType
-{
-    Text,
-    Html,
-}
-
 public class ScribanTemplateLoader
 {
     private readonly Dictionary<string, Template> _templateCache = new();
 
-    public async Task<string> LoadTemplate(string templateName, ScribanTemplateType type)
+    public async Task<Template> LoadTemplate(string templateName)
     {
-        string extension = type == ScribanTemplateType.Text ? "sbntxt" : "sbnhtml";
+        if (_templateCache.TryGetValue(templateName, out Template? loadTemplate))
+            return loadTemplate;
 
-        string templateString = await File.ReadAllTextAsync($"Resources/ScribanTemplates/{templateName}.{extension}");
-
-        return templateString;
-    }
-
-    public async Task<Template> LoadTemplateV2(string templateName, ScribanTemplateType type)
-    {
-        string extension = type == ScribanTemplateType.Text ? "sbntxt" : "sbnhtml";
-
-        if (_templateCache.ContainsKey(templateName)) return _templateCache[templateName];
-
-        string templateString = await File.ReadAllTextAsync($"Resources/ScribanTemplates/{templateName}.{extension}");
+        string templateString = await File.ReadAllTextAsync($"Resources/ScribanTemplates/{templateName}.sbntxt");
 
         Template? template = Template.Parse(templateString);
 

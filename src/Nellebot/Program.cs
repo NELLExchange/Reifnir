@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using MediatR;
@@ -8,13 +7,11 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Nellebot;
 using Nellebot.CommandHandlers;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
 using Nellebot.Services;
-using Nellebot.Services.HtmlToImage;
 using Nellebot.Services.Loggers;
 using Nellebot.Services.Ordbok;
 using Nellebot.Utils;
@@ -61,7 +58,6 @@ services.AddTransient<NotificationPublisher>();
 
 services.AddSingleton<SharedCache>();
 services.AddSingleton<ILocalizationService, LocalizationService>();
-services.AddSingleton<PuppeteerFactory>();
 
 services.AddSingleton<GoodbyeMessageBuffer>();
 
@@ -106,7 +102,6 @@ static void AddInternalServices(IServiceCollection services)
     services.AddTransient<ScribanTemplateLoader>();
     services.AddTransient<OrdbokModelMapper>();
     services.AddTransient<IOrdbokContentParser, OrdbokContentParser>();
-    services.AddTransient<HtmlToImageService>();
     services.AddTransient<BotSettingsService>();
     services.AddTransient<MessageRefsService>();
     services.AddTransient<UserLogService>();
