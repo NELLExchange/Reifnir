@@ -62,7 +62,7 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 
             modalInteraction = modalSubmissionResult.Interaction;
 
-            kickReason = modalSubmissionResult.Values[ModalTextInputId];
+            modalSubmissionResult.TryGetValue(ModalTextInputId, out kickReason);
 
             await modalInteraction.DeferAsync(ephemeral: true);
         }
@@ -81,19 +81,19 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
     {
         var modalId = $"get-reason-modal-{Guid.NewGuid()}";
 
-        DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
-            .WithTitle("Valhall kick user")
+        DiscordModalBuilder interactionBuilder = new DiscordModalBuilder()
             .WithCustomId(modalId)
-            .AddTextInputComponent(
+            .WithTitle("Valhall kick user")
+            .AddTextInput(
                 new DiscordTextInputComponent(
-                    "Reason",
                     ModalTextInputId,
                     "Write a reason for kicking",
                     string.Empty,
                     required: true,
-                    DiscordTextInputStyle.Paragraph,
+                    DiscordTextInputStyle.Short,
                     min_length: 0,
-                    DiscordConstants.MaxAuditReasonLength));
+                    DiscordConstants.MaxAuditReasonLength),
+                "Reason");
 
         await ctx.RespondWithModalAsync(interactionBuilder);
 

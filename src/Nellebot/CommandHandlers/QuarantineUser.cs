@@ -76,7 +76,7 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
 
             modalInteraction = modalSubmissionResult.Interaction;
 
-            quarantineReason = modalSubmissionResult.Values[ModalTextInputId];
+            modalSubmissionResult.TryGetValue(ModalTextInputId, out quarantineReason);
 
             await modalInteraction.DeferAsync(ephemeral: true);
         }
@@ -92,21 +92,21 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
     {
         var modalId = $"get-reason-modal-{Guid.NewGuid()}";
 
-        DiscordInteractionResponseBuilder interactionBuilder = new DiscordInteractionResponseBuilder()
-            .WithTitle("Quarantine user")
+        DiscordModalBuilder modalBuilder = new DiscordModalBuilder()
             .WithCustomId(modalId)
-            .AddTextInputComponent(
+            .WithTitle("Quarantine user")
+            .AddTextInput(
                 new DiscordTextInputComponent(
-                    "Reason",
                     ModalTextInputId,
                     "Write a reason for quarantining",
                     string.Empty,
                     required: true,
-                    DiscordTextInputStyle.Paragraph,
+                    DiscordTextInputStyle.Short,
                     min_length: 0,
-                    DiscordConstants.MaxAuditReasonLength));
+                    DiscordConstants.MaxAuditReasonLength),
+                "Reason");
 
-        await ctx.RespondWithModalAsync(interactionBuilder);
+        await ctx.RespondWithModalAsync(modalBuilder);
 
         InteractivityResult<ModalSubmittedEventArgs> modalSubmission =
             await _interactivityExtension.WaitForModalAsync(modalId, DiscordConstants.MaxDeferredInteractionWait);

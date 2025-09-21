@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 
 namespace Nellebot.Utils;
 
@@ -131,5 +132,93 @@ public static class DiscordExtensions
         string successMessage)
     {
         return Task.FromResult(ctx.TryRespondEphemeral(successMessage, modalInteraction: null));
+    }
+
+    /// <summary>
+    ///     Retrieves a typed value from modal submission results.
+    /// </summary>
+    /// <typeparam name="TResult">The expected type of the value.</typeparam>
+    /// <param name="modalResult">The modal submission event arguments.</param>
+    /// <param name="id">The component ID to retrieve the value for.</param>
+    /// <returns>The typed value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the component ID is not found.</exception>
+    /// <exception cref="InvalidCastException">Thrown when the value cannot be cast to TResult.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the modal submission type is not supported.</exception>
+    public static TResult GetValue<TResult>(this ModalSubmittedEventArgs modalResult, string id)
+    {
+        if (!modalResult.Values.TryGetValue(id, out IModalSubmission? submission))
+        {
+            throw new InvalidOperationException($"Modal submission value with id '{id}' not found");
+        }
+
+        const string invalidCastExceptionString = "Cannot cast modal result to {0}";
+
+        return submission switch
+        {
+            ChannelSelectMenuModalSubmission channelSelectSubmission =>
+                channelSelectSubmission.Ids is not TResult channelIds
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : channelIds,
+            MentionableSelectMenuModalSubmission mentionableSelectSubmission =>
+                mentionableSelectSubmission.Ids is not TResult mentionableIds
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : mentionableIds,
+            RoleSelectMenuModalSubmission roleSelectSubmission =>
+                roleSelectSubmission.Ids is not TResult roleIds
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : roleIds,
+            SelectMenuModalSubmission selectMenuSubmission =>
+                selectMenuSubmission.Values is not TResult selectValues
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : selectValues,
+            TextInputModalSubmission textInputSubmission =>
+                textInputSubmission.Value is not TResult textValue
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : textValue,
+            UserSelectMenuModalSubmission userSelectSubmission =>
+                userSelectSubmission.Ids is not TResult userIds
+                    ? throw new InvalidCastException(string.Format(invalidCastExceptionString, typeof(TResult).Name))
+                    : userIds,
+            _ => throw new NotSupportedException($"Unsupported modal submission type: {submission.GetType().Name}"),
+        };
+    }
+
+    /// <summary>
+    ///     Attempts to retrieve a typed value from modal submission results.
+    /// </summary>
+    /// <typeparam name="TResult">The expected type of the value.</typeparam>
+    /// <param name="modalResult">The modal submission event arguments.</param>
+    /// <param name="id">The component ID to retrieve the value for.</param>
+    /// <param name="value">
+    ///     When this method returns, contains the typed value if found and castable; otherwise, the default
+    ///     value for the type.
+    /// </param>
+    /// <returns>true if the value was found and successfully cast; otherwise, false.</returns>
+    public static bool TryGetValue<TResult>(this ModalSubmittedEventArgs modalResult, string id, out TResult? value)
+    {
+        if (!modalResult.Values.TryGetValue(id, out IModalSubmission? submission))
+        {
+            value = default;
+            return false;
+        }
+
+        value = submission switch
+        {
+            ChannelSelectMenuModalSubmission channelSelectSubmission =>
+                channelSelectSubmission.Ids is TResult channelIds ? channelIds : default,
+            MentionableSelectMenuModalSubmission mentionableSelectSubmission =>
+                mentionableSelectSubmission.Ids is TResult mentionableIds ? mentionableIds : default,
+            RoleSelectMenuModalSubmission roleSelectSubmission =>
+                roleSelectSubmission.Ids is TResult roleIds ? roleIds : default,
+            SelectMenuModalSubmission selectMenuSubmission =>
+                selectMenuSubmission.Values is TResult selectValues ? selectValues : default,
+            TextInputModalSubmission textInputSubmission =>
+                textInputSubmission.Value is TResult textValue ? textValue : default,
+            UserSelectMenuModalSubmission userSelectSubmission =>
+                userSelectSubmission.Ids is TResult userIds ? userIds : default,
+            _ => default,
+        };
+
+        return value is not null;
     }
 }
