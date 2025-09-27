@@ -22,7 +22,7 @@ public class NoWayGateway : IGatewayController
 
     public async Task ZombiedAsync(IGatewayClient client)
     {
-        _discordLogger.LogExtendedActivityMessage("Connection to gateway zombied. Reconnecting...");
+        _discordLogger.LogOperationMessage("Connection to gateway zombied. Reconnecting...");
         await client.ReconnectAsync();
     }
 
@@ -46,13 +46,13 @@ public class NoWayGateway : IGatewayController
 
     public Task ReconnectFailedAsync(IGatewayClient client)
     {
-        _discordLogger.LogExtendedActivityMessage("Reconnect failed.");
+        _discordLogger.LogOperationMessage("Reconnect failed.");
         return Task.CompletedTask;
     }
 
     public Task SessionInvalidatedAsync(IGatewayClient client)
     {
-        _discordLogger.LogExtendedActivityMessage("Session invalidated.");
+        _discordLogger.LogOperationMessage("Session invalidated.");
         return Task.CompletedTask;
     }
 }

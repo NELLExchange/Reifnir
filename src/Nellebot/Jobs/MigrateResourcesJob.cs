@@ -34,9 +34,9 @@ public class MigrateResourcesJob : IJob
 
     private static readonly ResourceChannel[] SourceResourcesChannelIds =
     [
-        new(1333043499200679947, null), // #lang-res
-        new(1333048476950466570, NynorskTag), // #nn-res
-        new(1333043544553820222, MediaTag), // #media-res
+        new(DiscordChannelId: 1333043499200679947, Tag: null), // #lang-res
+        new(DiscordChannelId: 1333048476950466570, NynorskTag), // #nn-res
+        new(DiscordChannelId: 1333043544553820222, MediaTag), // #media-res
     ];
 #else
     private const ulong ResourcesForumChannelId = 1289968921331634231;
@@ -74,18 +74,17 @@ public class MigrateResourcesJob : IJob
 
             context.MergedJobDataMap.TryGetBooleanValue("dryRun", out bool isDryRun);
 
-            _discordLogger.LogExtendedActivityMessage($"Running job {Key}{(isDryRun ? " (dry run)" : string.Empty)}");
+            _discordLogger.LogOperationMessage($"Running job {Key}{(isDryRun ? " (dry run)" : string.Empty)}");
 
             var forumPosts = new List<ForumPost>();
 
             DiscordForumChannel resourcesChannel =
                 await _discordResolver.ResolveChannelAsync(ResourcesForumChannelId) as DiscordForumChannel
-                ?? throw new InvalidOperationException(
-                    $"Could not resolve channel {ResourcesForumChannelId}");
+                ?? throw new InvalidOperationException($"Could not resolve channel {ResourcesForumChannelId}");
 
             IReadOnlyList<DiscordForumTag> channelTags = resourcesChannel.AvailableTags;
 
-            _discordLogger.LogExtendedActivityMessage("Collecting messages...");
+            _discordLogger.LogOperationMessage("Collecting messages...");
 
             var successCount = 0;
             var failureCount = 0;
@@ -103,7 +102,7 @@ public class MigrateResourcesJob : IJob
                 ForumPost? currentPost = null;
 
                 await foreach (DiscordMessage message in discordChannel.GetMessagesAfterAsync(
-                                   0,
+                                   after: 0,
                                    short.MaxValue,
                                    cancellationToken))
                 {
@@ -165,7 +164,7 @@ public class MigrateResourcesJob : IJob
                 }
             }
 
-            _discordLogger.LogExtendedActivityMessage("Done collecting messages");
+            _discordLogger.LogOperationMessage("Done collecting messages");
 
             // Post messages in forum channel in chronological order
             List<ForumPost> orderedForumPosts =
@@ -174,10 +173,9 @@ public class MigrateResourcesJob : IJob
                     .OrderBy(x => x.FirstContentMessage.Id)
                     .ToList();
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"{orderedForumPosts.Count} resource forum posts will be created");
+            _discordLogger.LogOperationMessage($"{orderedForumPosts.Count} resource forum posts will be created");
 
-            _discordLogger.LogExtendedActivityMessage($"{skippedCount} will be skipped");
+            _discordLogger.LogOperationMessage($"{skippedCount} will be skipped");
 
             foreach (ForumPost forumPost in orderedForumPosts)
             {
@@ -220,8 +218,7 @@ public class MigrateResourcesJob : IJob
                     forumPostBuilder = tags.Aggregate(forumPostBuilder, (current, tag) => current.AddTag(tag));
 
                     var sb = new StringBuilder();
-                    sb.AppendLineLF(
-                            $"Creating post for message {forumPost.FirstContentMessage.JumpLink}")
+                    sb.AppendLineLF($"Creating post for message {forumPost.FirstContentMessage.JumpLink}")
                         .AppendLineLF($"Title: {title}")
                         .AppendLineLF($"Content: {content.Sum(x => x.Length)} chars in {content.Count} message(s)")
                         .AppendLineLF(
@@ -230,7 +227,7 @@ public class MigrateResourcesJob : IJob
                         .AppendLineLF($"Images: {imageAttachments.Count}")
                         .AppendLineLF($"Non image files: {forumPost.NonImageAttachmentCount}");
 
-                    _discordLogger.LogExtendedActivityMessage(sb.ToString().TrimEnd());
+                    _discordLogger.LogOperationMessage(sb.ToString().TrimEnd());
 
                     // Gives us some time to follow along and to cancel if something goes wrong
                     await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
@@ -279,8 +276,8 @@ public class MigrateResourcesJob : IJob
                 }
             }
 
-            _discordLogger.LogExtendedActivityMessage($"Successful forum posts: {successCount}");
-            _discordLogger.LogExtendedActivityMessage($"Failed forum posts: {failureCount}");
+            _discordLogger.LogOperationMessage($"Successful forum posts: {successCount}");
+            _discordLogger.LogOperationMessage($"Failed forum posts: {failureCount}");
         }
         catch (Exception ex)
         {
@@ -385,7 +382,7 @@ public class MigrateResourcesJob : IJob
             sb.Clear();
 
             // Split text into chunks of max 2000 chars each, split by newlines
-            string[] textLines = allText.Split('\n').ToArray();
+            string[] textLines = allText.Split('\n');
 
             var result = new List<string>();
 

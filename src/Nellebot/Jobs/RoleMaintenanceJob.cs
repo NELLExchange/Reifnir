@@ -17,8 +17,8 @@ public class RoleMaintenanceJob : IJob
     public static readonly JobKey Key = new("role-maintenance", "default");
 
     private readonly DiscordClient _client;
-    private readonly DiscordLogger _discordLogger;
     private readonly IDiscordErrorLogger _discordErrorLogger;
+    private readonly DiscordLogger _discordLogger;
     private readonly BotOptions _options;
 
     public RoleMaintenanceJob(
@@ -37,7 +37,7 @@ public class RoleMaintenanceJob : IJob
     {
         try
         {
-            _discordLogger.LogExtendedActivityMessage($"Job started: {Key}");
+            _discordLogger.LogOperationMessage($"Job started: {Key}");
 
             CancellationToken cancellationToken = context.CancellationToken;
 
@@ -49,11 +49,11 @@ public class RoleMaintenanceJob : IJob
 
             DiscordGuild guild = _client.Guilds[guildId];
 
-            _discordLogger.LogExtendedActivityMessage("Downloading guild members.");
+            _discordLogger.LogOperationMessage("Downloading guild members.");
 
             List<DiscordMember> allMembers = await guild.GetAllMembersAsync(cancellationToken).ToListAsync();
 
-            _discordLogger.LogExtendedActivityMessage($"Downloaded {allMembers.Count} guild members.");
+            _discordLogger.LogOperationMessage($"Downloaded {allMembers.Count} guild members.");
 
             DiscordRole memberRole = guild.Roles[memberRoleId]
                                      ?? throw new Exception($"Could not find member role with id {memberRoleId}");
@@ -68,7 +68,7 @@ public class RoleMaintenanceJob : IJob
 
             await RemoveUnneededGhostRoles(allMembers, ghostRole, cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage($"Job finished: {Key}");
+            _discordLogger.LogOperationMessage($"Job finished: {Key}");
         }
         catch (Exception ex)
         {
@@ -92,7 +92,7 @@ public class RoleMaintenanceJob : IJob
         {
             int totalCount = missingMemberRoleMembers.Count;
 
-            _discordLogger.LogExtendedActivityMessage(
+            _discordLogger.LogOperationMessage(
                 $"Found {missingMemberRoleMembers.Count} users which are missing the Member role.");
 
             int successCount = await ExecuteRoleChangeWithRetry(
@@ -100,8 +100,7 @@ public class RoleMaintenanceJob : IJob
                 m => m.GrantRoleAsync(memberRole),
                 cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Done adding Member role for {successCount}/{totalCount} users.");
+            _discordLogger.LogOperationMessage($"Done adding Member role for {successCount}/{totalCount} users.");
         }
 
         return;
@@ -137,16 +136,14 @@ public class RoleMaintenanceJob : IJob
         {
             int totalCount = memberRoleCandidates.Count;
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Found {memberRoleCandidates.Count} users with unneeded Member role.");
+            _discordLogger.LogOperationMessage($"Found {memberRoleCandidates.Count} users with unneeded Member role.");
 
             int successCount = await ExecuteRoleChangeWithRetry(
                 memberRoleCandidates,
                 m => m.RevokeRoleAsync(memberRole),
                 cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Done removing Member role for {successCount}/{totalCount} users.");
+            _discordLogger.LogOperationMessage($"Done removing Member role for {successCount}/{totalCount} users.");
         }
 
         return;
@@ -180,7 +177,7 @@ public class RoleMaintenanceJob : IJob
         {
             int totalCount = ghostRoleCandidates.Count;
 
-            _discordLogger.LogExtendedActivityMessage(
+            _discordLogger.LogOperationMessage(
                 $"Found {ghostRoleCandidates.Count} users which are missing the Ghost role.");
 
             int successCount = await ExecuteRoleChangeWithRetry(
@@ -188,7 +185,7 @@ public class RoleMaintenanceJob : IJob
                 m => m.GrantRoleAsync(ghostRole),
                 cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage($"Done adding Ghost role for {successCount}/{totalCount} users.");
+            _discordLogger.LogOperationMessage($"Done adding Ghost role for {successCount}/{totalCount} users.");
         }
     }
 
@@ -205,16 +202,14 @@ public class RoleMaintenanceJob : IJob
         {
             int totalCount = ghostRoleCandidates.Count;
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Found {ghostRoleCandidates.Count} users with unneeded Ghost role.");
+            _discordLogger.LogOperationMessage($"Found {ghostRoleCandidates.Count} users with unneeded Ghost role.");
 
             int successCount = await ExecuteRoleChangeWithRetry(
                 ghostRoleCandidates,
                 m => m.RevokeRoleAsync(ghostRole),
                 cancellationToken);
 
-            _discordLogger.LogExtendedActivityMessage(
-                $"Done removing Ghost role for {successCount}/{totalCount} users.");
+            _discordLogger.LogOperationMessage($"Done removing Ghost role for {successCount}/{totalCount} users.");
         }
     }
 
