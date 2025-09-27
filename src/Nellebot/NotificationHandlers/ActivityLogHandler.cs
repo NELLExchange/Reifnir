@@ -259,24 +259,22 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                 responsibleName = memberResponsible?.DisplayName ?? responsibleName;
             }
 
-            _discordLogger.LogActivityMessage(
-                $"{messages.Count} messages written by **{authorName}** were removed by **{responsibleName}**.");
+            var logMessageSb = new StringBuilder(
+                $"{messages.Count} message(s) written by **{authorName}** were removed by **{responsibleName}**.");
 
-            var sb = new StringBuilder();
-
-            sb.AppendLine(
-                $"{messages.Count} messages written by **{authorName}** were removed by **{responsibleName}**.");
-
-            foreach (AppDiscordMessage message in messages.Where(x => x != null))
+            foreach (AppDiscordMessage message in messages)
             {
-                sb.AppendLine();
-                sb.AppendLine($"In {message.Channel.Name} at {message.CreationTimestamp}:");
+                logMessageSb.AppendLineLF();
+                logMessageSb.AppendLineLF($"In {message.Channel.Name} at {message.CreationTimestamp}.");
 
-                if (!string.IsNullOrWhiteSpace(message.Content)) sb.AppendLine($"> {message.Content}");
+                if (string.IsNullOrWhiteSpace(message.Content)) continue;
+
+                string escapedOriginalMessage = EscapeSpoilerTags(message.Content);
+                logMessageSb.AppendLineLF(
+                    $" Original message:{DiscordConstants.NewLineChar}||{escapedOriginalMessage}||");
             }
 
-            // TODO: Log deleted messages in normal activity log channel
-            // _discordLogger.LogOperationMessage(sb.ToString());
+            _discordLogger.LogActivityMessage(logMessageSb.ToString());
         }
     }
 
@@ -368,11 +366,11 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
-            logMessage += $" Original message:{Environment.NewLine}> {message.Content}";
+            string escapedOriginalMessage = EscapeSpoilerTags(message.Content);
+            logMessage += $" Original message:{DiscordConstants.NewLineChar}||{escapedOriginalMessage}||";
         }
 
-        // TODO: Log deleted messages in normal activity log channel
-        // _discordLogger.LogOperationMessage(logMessage);
+        _discordLogger.LogActivityMessage(logMessage);
     }
 
     public async Task Handle(MemberApprovedNotification notification, CancellationToken cancellationToken)
@@ -452,7 +450,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     {
         var roleChanges = false;
         DiscordMember member = args.Member;
-        string memberMention = member.Mention;
         string memberDisplayName = member.DisplayName;
 
         List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
@@ -542,5 +539,10 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         }
 
         return completeMessages;
+    }
+
+    private static string EscapeSpoilerTags(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? value : value.Replace("||", @"\|\|");
     }
 }

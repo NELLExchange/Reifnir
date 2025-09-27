@@ -4,7 +4,6 @@ using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.TextCommands;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Options;
-using Nellebot.CommandHandlers;
 using Nellebot.Utils;
 using Nellebot.Workers;
 
@@ -37,27 +36,9 @@ public class DiscordErrorLogger : IDiscordErrorLogger
         var contextMessage = $"`{command}` by `{user}` in `{channelName}`(`{guildName}`)";
         var escapedErrorMessage = $"`{EscapeTicks(errorMessage)}`";
 
-        var fullErrorMessage = $"{contextMessage}{Environment.NewLine}{escapedErrorMessage}";
+        var fullErrorMessage = $"{contextMessage}{DiscordConstants.NewLineChar}{escapedErrorMessage}";
 
         LogError("Failed command", fullErrorMessage);
-    }
-
-    public void LogEventError(EventContext ctx, string errorMessage)
-    {
-        string user = ctx.User != null ? $"{ctx.User.Username}#{ctx.User.Discriminator}" : "Unknown user";
-        string channelName = ctx.Channel?.Name ?? "Unknown channel";
-        string eventName = ctx.EventName;
-        string message = ctx.Message != null ? EscapeTicks(ctx.Message.Content) : string.Empty;
-
-        var contextMessage = $"`{eventName}` by `{user}` in `{channelName}`";
-
-        if (!string.IsNullOrWhiteSpace(message)) contextMessage += $"{Environment.NewLine}Message: `{message}`";
-
-        var escapedErrorMesssage = $"`{EscapeTicks(errorMessage)}`";
-
-        var fullErrorMessage = $"{contextMessage}{Environment.NewLine}{escapedErrorMesssage}";
-
-        LogError("Failed event", fullErrorMessage);
     }
 
     public void LogError(Exception ex, string message)
@@ -82,7 +63,7 @@ public class DiscordErrorLogger : IDiscordErrorLogger
 
     private static string EscapeTicks(string value)
     {
-        return string.IsNullOrWhiteSpace(value) ? value : value.Replace('`', '\'');
+        return string.IsNullOrWhiteSpace(value) ? value : value.Replace(oldChar: '`', newChar: '\'');
     }
 
     private void SendErrorLogChannelEmbed(string title, string message, int color)
