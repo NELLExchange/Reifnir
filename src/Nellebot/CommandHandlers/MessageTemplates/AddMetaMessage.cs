@@ -235,7 +235,7 @@ public class AddMetaMessageHandler : IRequestHandler<AddMetaMessageCommand>
             DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
                 .WithContent(activityMessageText)
                 .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(encodedMessageText));
-            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
+            _discordLogger.LogActivityMessage(activityMessageBuilder);
         }
         catch (Exception ex)
         {

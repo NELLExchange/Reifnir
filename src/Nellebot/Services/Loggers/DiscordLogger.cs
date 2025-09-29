@@ -33,19 +33,19 @@ public class DiscordLogger
         LogMessageCore(message, _options.ActivityLogChannelId, suppressNotifications: true);
     }
 
-    public void LogExtendedActivityMessage(string message)
+    public void LogActivityMessage(DiscordMessageBuilder message)
     {
-        LogMessageCore(message, _options.ExtendedActivityLogChannelId, suppressNotifications: true);
+        LogMessageCore(message, _options.ActivityLogChannelId, suppressNotifications: true);
     }
 
-    public void LogExtendedActivityMessage(DiscordMessageBuilder message)
+    public void LogOperationMessage(string message)
     {
-        LogMessageCore(message, _options.ExtendedActivityLogChannelId, suppressNotifications: true);
+        LogMessageCore(message, _options.OperationLogChannelId, suppressNotifications: true);
     }
 
-    public void LogTrustedChannelMessage(string message)
+    public void LogModAlertsMessage(string message)
     {
-        LogMessageCore(message, _options.TrustedChannelId);
+        LogMessageCore(message, _options.ModAlertsChannelId);
     }
 
     private void LogMessageCore(string message, ulong channelId, bool suppressNotifications = false)

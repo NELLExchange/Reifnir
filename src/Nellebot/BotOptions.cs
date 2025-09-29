@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Nellebot;
+﻿namespace Nellebot;
 
 public class BotOptions
 {
@@ -27,18 +25,20 @@ public class BotOptions
     /// <summary>
     ///     Gets discord roles with access to some admin commands.
     /// </summary>
-    public ulong[] TrustedRoleIds { get; init; } = Array.Empty<ulong>();
+    public ulong[] TrustedRoleIds { get; init; } = [];
 
     /// <summary>
     ///     Gets channel id where Trusted roles have access to.
     /// </summary>
     public ulong TrustedChannelId { get; init; }
 
+    public ulong ModAlertsChannelId { get; init; }
+
     public ulong ActivityLogChannelId { get; init; }
 
-    public ulong ExtendedActivityLogChannelId { get; init; }
-
     public ulong GreetingsChannelId { get; init; }
+
+    public ulong OperationLogChannelId { get; init; }
 
     public ulong ErrorLogChannelId { get; init; }
 

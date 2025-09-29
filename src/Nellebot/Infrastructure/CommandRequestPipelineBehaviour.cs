@@ -47,7 +47,7 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
         }
         catch (Exception ex) when (request is BotCommandCommand commandCommand)
         {
-            await HandeCommandCommandException(commandCommand, ex);
+            await HandleCommandCommandException(commandCommand, ex);
             return default!;
         }
         catch (Exception ex) when (request is IRequest)
@@ -104,7 +104,7 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
         _logger.LogError(ex, nameof(HandleSlashCommandException));
     }
 
-    private async Task HandeCommandCommandException(BotCommandCommand request, Exception ex)
+    private async Task HandleCommandCommandException(BotCommandCommand request, Exception ex)
     {
         CommandContext ctx = request.Ctx;
 
@@ -126,6 +126,6 @@ public class CommandRequestPipelineBehaviour<TRequest, TResponse> : IPipelineBeh
 
         _discordErrorLogger.LogCommandError(ctx, ex.ToString());
 
-        _logger.LogError(ex, nameof(HandeCommandCommandException));
+        _logger.LogError(ex, nameof(HandleCommandCommandException));
     }
 }

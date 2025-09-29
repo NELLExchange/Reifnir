@@ -81,7 +81,7 @@ public class ClientStatusHandler : INotificationHandler<ClientHeartbeatNotificat
 
             _logger.LogDebug("{message}", message);
 
-            _discordLogger.LogExtendedActivityMessage(message);
+            _discordLogger.LogOperationMessage(message);
         }
 
         if (_options.AutoPopulateMessagesOnReadyEnabled)
@@ -91,7 +91,7 @@ public class ClientStatusHandler : INotificationHandler<ClientHeartbeatNotificat
             if (createdCount > 0)
             {
                 _logger.LogDebug("Populated {createdCount} message refs", createdCount);
-                _discordLogger.LogExtendedActivityMessage($"Populated {createdCount} message refs");
+                _discordLogger.LogOperationMessage($"Populated {createdCount} message refs");
             }
         }
 

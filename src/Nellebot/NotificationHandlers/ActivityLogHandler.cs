@@ -184,7 +184,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         // Test if there actually are several types of changes in the same event
         if (typeOfChangeCount > 2)
         {
-            _discordLogger.LogExtendedActivityMessage(
+            _discordLogger.LogOperationMessage(
                 $"{nameof(GuildMemberUpdatedNotification)} contained {typeOfChangeCount} types of changes");
         }
     }
@@ -259,23 +259,22 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                 responsibleName = memberResponsible?.DisplayName ?? responsibleName;
             }
 
-            _discordLogger.LogActivityMessage(
-                $"{messages.Count} messages written by **{authorName}** were removed by **{responsibleName}**.");
+            var logMessageSb = new StringBuilder(
+                $"{messages.Count} message(s) written by **{authorName}** were removed by **{responsibleName}**.");
 
-            var sb = new StringBuilder();
-
-            sb.AppendLine(
-                $"{messages.Count} messages written by **{authorName}** were removed by **{responsibleName}**.");
-
-            foreach (AppDiscordMessage message in messages.Where(x => x != null))
+            foreach (AppDiscordMessage message in messages)
             {
-                sb.AppendLine();
-                sb.AppendLine($"In {message.Channel.Name} at {message.CreationTimestamp}:");
+                logMessageSb.AppendLineLF();
+                logMessageSb.AppendLineLF($"In {message.Channel.Name} at {message.CreationTimestamp}.");
 
-                if (!string.IsNullOrWhiteSpace(message.Content)) sb.AppendLine($"> {message.Content}");
+                if (string.IsNullOrWhiteSpace(message.Content)) continue;
+
+                string escapedOriginalMessage = EscapeSpoilerTags(message.Content);
+                logMessageSb.AppendLineLF(
+                    $" Original message:{DiscordConstants.NewLineChar}||{escapedOriginalMessage}||");
             }
 
-            _discordLogger.LogExtendedActivityMessage(sb.ToString());
+            _discordLogger.LogActivityMessage(logMessageSb.ToString());
         }
     }
 
@@ -287,8 +286,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         DiscordChannel channel = args.Channel;
         DiscordMessage deletedMessage = args.Message;
 
-        if (channel.IsPrivate || channel.Id == _botOptions.ActivityLogChannelId ||
-            channel.Id == _botOptions.ExtendedActivityLogChannelId)
+        if (channel.IsPrivate || channel.Id == _botOptions.ActivityLogChannelId)
         {
             return;
         }
@@ -303,7 +301,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
                 $"{nameof(MessageDeletedNotification)}",
                 $"Could not resolve message id {deletedMessage.Id}");
 
-            _discordLogger.LogExtendedActivityMessage($"An unknown message in **{channel.Name}** was removed");
+            _discordLogger.LogActivityMessage($"An unknown message in **{channel.Name}** was removed");
 
             return;
         }
@@ -368,10 +366,11 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
-            logMessage += $" Original message:{Environment.NewLine}> {message.Content}";
+            string escapedOriginalMessage = EscapeSpoilerTags(message.Content);
+            logMessage += $" Original message:{DiscordConstants.NewLineChar}||{escapedOriginalMessage}||";
         }
 
-        _discordLogger.LogExtendedActivityMessage(logMessage);
+        _discordLogger.LogActivityMessage(logMessage);
     }
 
     public async Task Handle(MemberApprovedNotification notification, CancellationToken cancellationToken)
@@ -380,8 +379,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         DiscordMember memberResponsible = notification.MemberResponsible;
         string memberMention = member.Mention;
 
-        _discordLogger.LogExtendedActivityMessage(
-            $"{memberMention} has been approved by **{memberResponsible.DisplayName}**.");
+        _discordLogger.LogActivityMessage($"{memberMention} has been approved by **{memberResponsible.DisplayName}**.");
 
         await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
     }
@@ -391,20 +389,20 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         DiscordMember member = notification.Member;
         string memberIdentifier = member.GetDetailedMemberIdentifier(useMention: true);
         string memberMention = member.Mention;
-        DiscordMember memberResponsible = notification.MemberResponsible;
+        string memberResponsible = notification.MemberResponsible.DisplayName;
         string reason = notification.Reason;
 
-        _discordLogger.LogTrustedChannelMessage(
-            $"Awoooooo! **{memberIdentifier}** has been quarantined. Reason: {reason}.");
+        _discordLogger.LogModAlertsMessage(
+            $"Awoooooo! **{memberIdentifier}** has been quarantined by **{memberResponsible}**. Reason: {reason}.");
 
-        _discordLogger.LogExtendedActivityMessage(
-            $"{memberMention} has been quarantined by **{memberResponsible.DisplayName}**.");
+        _discordLogger.LogActivityMessage($"{memberMention} has been quarantined by **{memberResponsible}**.");
 
         await _userLogService.CreateUserLog(member.Id, reason, UserLogType.Quarantined);
     }
 
     private async Task<bool> CheckForUsernameUpdate(GuildMemberUpdatedEventArgs args)
     {
+        string memberIdentifier = args.Member.GetDetailedMemberIdentifier();
         string? usernameAfter = args.MemberAfter.GetFullUsername();
         string? usernameBefore = args.MemberBefore.GetFullUsername();
 
@@ -416,8 +414,8 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
         if (usernameBefore == usernameAfter) return false;
 
-        _discordLogger.LogExtendedActivityMessage(
-            $"Username change for {args.Member.Mention}. {usernameBefore ?? "??"} => {usernameAfter ?? "??"}.");
+        _discordLogger.LogActivityMessage(
+            $"Username change for {memberIdentifier}: {usernameBefore ?? "??"} => {usernameAfter ?? "??"}.");
 
         await _userLogService.CreateUserLog(args.Member.Id, usernameAfter, UserLogType.UsernameChange);
 
@@ -426,6 +424,7 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
     private async Task<bool> CheckForNicknameUpdate(GuildMemberUpdatedEventArgs args)
     {
+        string memberIdentifier = args.Member.GetDetailedMemberIdentifier();
         string? nicknameAfter = args.NicknameAfter;
         string? nicknameBefore = args.NicknameBefore;
 
@@ -439,8 +438,8 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         if (nicknameBefore == nicknameAfter) return false;
 
         const string noNickname = "*no nickname*";
-        _discordLogger.LogExtendedActivityMessage(
-            $"Nickname change for {args.Member.Mention}. {nicknameBefore ?? noNickname} => {nicknameAfter ?? noNickname}.");
+        _discordLogger.LogActivityMessage(
+            $"Nickname change for {memberIdentifier}. {nicknameBefore ?? noNickname} => {nicknameAfter ?? noNickname}.");
 
         await _userLogService.CreateUserLog(args.Member.Id, nicknameAfter, UserLogType.NicknameChange);
 
@@ -451,7 +450,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
     {
         var roleChanges = false;
         DiscordMember member = args.Member;
-        string memberMention = member.Mention;
         string memberDisplayName = member.DisplayName;
 
         List<DiscordRole> addedRoles = args.RolesAfter.ExceptBy(args.RolesBefore.Select(r => r.Id), x => x.Id).ToList();
@@ -463,11 +461,6 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
             roleChanges = true;
             string addedRolesNames = string.Join(", ", addedRoles.Select(r => r.Name));
             _discordLogger.LogActivityMessage($"Added roles to **{memberDisplayName}**: {addedRolesNames}");
-
-            foreach (DiscordRole addedRole in addedRoles)
-            {
-                _discordLogger.LogExtendedActivityMessage($"Role change for {memberMention}: Added {addedRole.Name}.");
-            }
         }
 
         if (removedRoles.Count > 0)
@@ -478,13 +471,10 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
 
             ulong quarantineRoleId = _botOptions.QuarantineRoleId;
             DiscordRole? quarantineRole = _discordResolver.ResolveRole(quarantineRoleId);
-
-            foreach (DiscordRole removedRole in removedRoles)
+            if (quarantineRole is not null)
             {
-                _discordLogger.LogExtendedActivityMessage(
-                    $"Role change for {memberMention}: Removed {removedRole.Name}.");
-
-                if (quarantineRole is not null && removedRole.Id == quarantineRole.Id)
+                bool quarantineRolesWasRemoved = removedRoles.Contains(quarantineRole);
+                if (quarantineRolesWasRemoved)
                 {
                     await _userLogService.CreateUserLog(member.Id, string.Empty, UserLogType.Approved);
                 }
@@ -549,5 +539,10 @@ public class ActivityLogHandler : INotificationHandler<GuildBanAddedNotification
         }
 
         return completeMessages;
+    }
+
+    private static string EscapeSpoilerTags(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? value : value.Replace("||", @"\|\|");
     }
 }

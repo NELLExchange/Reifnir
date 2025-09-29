@@ -97,7 +97,7 @@ public class EditMetaMessageHandler : IRequestHandler<EditMetaMessageCommand>
             DiscordMessageBuilder activityMessageBuilder = new DiscordMessageBuilder()
                 .WithContent(activityMessageText)
                 .AddEmbed(EmbedBuilderHelper.BuildSimpleEmbed(encodedMessageText));
-            _discordLogger.LogExtendedActivityMessage(activityMessageBuilder);
+            _discordLogger.LogActivityMessage(activityMessageBuilder);
 
             DiscordFollowupMessageBuilder followup = new DiscordFollowupMessageBuilder()
                 .WithContent($"Message edited successfully! [Jump to message]({message.JumpLink})")
