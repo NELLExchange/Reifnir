@@ -9,6 +9,8 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using MediatR;
 using Microsoft.Extensions.Options;
+using Nellebot.Common.AppDiscordModels;
+using Nellebot.DiscordModelMappers;
 using Nellebot.Services;
 using Nellebot.Utils;
 
@@ -21,16 +23,19 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
 {
     private const string ModalTextInputId = "modal-text-input";
     private readonly InteractivityExtension _interactivityExtension;
+    private readonly AuthorizationService _authService;
     private readonly BotOptions _options;
     private readonly QuarantineService _quarantineService;
 
     public QuarantineUserHandler(
         IOptions<BotOptions> options,
         QuarantineService quarantineService,
-        InteractivityExtension interactivityExtension)
+        InteractivityExtension interactivityExtension,
+        AuthorizationService authService)
     {
         _quarantineService = quarantineService;
         _interactivityExtension = interactivityExtension;
+        _authService = authService;
         _options = options.Value;
     }
 
@@ -48,9 +53,13 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
 
         TimeSpan guildAge = DateTimeOffset.UtcNow - targetMember.JoinedAt;
 
-        int maxAgeHours = _options.ValhallKickMaxMemberAgeInHours;
+        int maxAgeHours = _options.QuarantineMaxMemberAgeInHours;
 
-        if (guildAge.TotalHours >= maxAgeHours)
+        AppDiscordMember appCurrentMember = DiscordMemberMapper.Map(currentMember);
+
+        bool canBypassAgeRestriction = _authService.IsAdminOrMod(appCurrentMember);
+
+        if (!canBypassAgeRestriction && guildAge.TotalHours >= maxAgeHours)
         {
             var content =
                 $"You cannot quarantine this user. They have been a member of the server for more than {maxAgeHours} hours.";

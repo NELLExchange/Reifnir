@@ -35,7 +35,7 @@ public class DeleteGoodbyeMessageHandler : IRequestHandler<DeleteGoodbyeMessageC
     {
         CommandContext ctx = request.Ctx;
         string id = request.Id;
-        DiscordMember author = ctx.Member ?? throw new Exception("Member was null");
+        DiscordMember currentMember = ctx.Member ?? throw new Exception("Member was null");
 
         MessageTemplate? messageTemplate = await _messageTemplateRepo.GetMessageTemplate(id, cancellationToken);
 
@@ -45,11 +45,11 @@ public class DeleteGoodbyeMessageHandler : IRequestHandler<DeleteGoodbyeMessageC
                 $"I couldn't find a goodbye message with id {id}, although I'm sure it's your fault.");
         }
 
-        AppDiscordMember appMember = DiscordMemberMapper.Map(ctx.Member);
+        AppDiscordMember appCurrentMember = DiscordMemberMapper.Map(currentMember);
 
-        bool isAuthorized = _authService.IsAdminOrMod(appMember);
+        bool isAuthorized = _authService.IsAdminOrMod(appCurrentMember);
 
-        if (!isAuthorized && messageTemplate.AuthorId != author.Id)
+        if (!isAuthorized && messageTemplate.AuthorId != currentMember.Id)
         {
             throw new ArgumentException("Hey! Nacho cheese! Uh, I mean, nacho goodbye message.");
         }
