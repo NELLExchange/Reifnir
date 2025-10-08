@@ -54,7 +54,11 @@ public class BotOptions
 
     public ulong MemberRoleId { get; init; }
 
-    public ulong[] MemberRoleIds { get; init; } = [];
+    public ulong[] MemberActivatingRoleIds { get; init; } = [];
+
+    public ulong BeginnerRoleId { get; init; }
+
+    public ulong[] BeginnerActivatingRoleIds { get; init; } = [];
 
     public ulong GhostRoleId { get; init; }
 
