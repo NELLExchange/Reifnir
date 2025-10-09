@@ -77,7 +77,7 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
         }
 
         DiscordInteraction? modalInteraction = null;
-        string? quarantineReason = null;
+        string? quarantineReason = request.Reason;
 
         if (ctx is SlashCommandContext slashCtx && request.Reason == null)
         {

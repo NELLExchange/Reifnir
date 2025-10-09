@@ -54,7 +54,7 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
         }
 
         DiscordInteraction? modalInteraction = null;
-        string? kickReason = null;
+        string? kickReason = request.Reason;
 
         if (ctx is SlashCommandContext slashCtx && request.Reason == null)
         {
