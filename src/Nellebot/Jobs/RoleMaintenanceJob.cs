@@ -42,9 +42,6 @@ public class RoleMaintenanceJob : IJob
             CancellationToken cancellationToken = context.CancellationToken;
 
             ulong guildId = _options.GuildId;
-            ulong memberRoleId = _options.MemberRoleId;
-            ulong[] memberRoleIds = _options.MemberRoleIds;
-            ulong ghostRoleId = _options.GhostRoleId;
             ulong quarantineRoleId = _options.QuarantineRoleId;
 
             DiscordGuild guild = _client.Guilds[guildId];
@@ -55,18 +52,11 @@ public class RoleMaintenanceJob : IJob
 
             _discordLogger.LogOperationMessage($"Downloaded {allMembers.Count} guild members.");
 
-            DiscordRole memberRole = guild.Roles[memberRoleId]
-                                     ?? throw new Exception($"Could not find member role with id {memberRoleId}");
-            DiscordRole ghostRole = guild.Roles[ghostRoleId]
-                                    ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
+            await MaintainMemberRoles(guild, allMembers, quarantineRoleId, cancellationToken);
 
-            await AddMissingMemberRoles(allMembers, memberRoleIds, memberRole, quarantineRoleId, cancellationToken);
+            await MaintainBeginnerRoles(guild, allMembers, quarantineRoleId, cancellationToken);
 
-            await RemoveUnneededMemberRoles(allMembers, memberRoleIds, memberRole, quarantineRoleId, cancellationToken);
-
-            await AddMissingGhostRoles(allMembers, ghostRole, cancellationToken);
-
-            await RemoveUnneededGhostRoles(allMembers, ghostRole, cancellationToken);
+            await MaintainGhostRoles(guild, allMembers, cancellationToken);
 
             _discordLogger.LogOperationMessage($"Job finished: {Key}");
         }
@@ -77,42 +67,94 @@ public class RoleMaintenanceJob : IJob
         }
     }
 
-    private async Task AddMissingMemberRoles(
+    private async Task MaintainMemberRoles(
+        DiscordGuild guild,
         List<DiscordMember> allMembers,
-        ulong[] memberRoleIds,
-        DiscordRole memberRole,
         ulong quarantineRoleId,
         CancellationToken cancellationToken)
     {
-        List<DiscordMember> missingMemberRoleMembers = allMembers
-            .Where(m => !HasMemberRole(m) && HasMandatoryRoles(m) && !HasQuarantineRole(m))
+        ulong memberRoleId = _options.MemberRoleId;
+        ulong[] memberActivatingRoleIds = _options.MemberActivatingRoleIds;
+        DiscordRole memberRole = guild.Roles[memberRoleId]
+                                 ?? throw new Exception($"Could not find Member role with id {memberRoleId}");
+
+        await AddMissingActivatableRoles(
+            allMembers,
+            memberRole,
+            memberActivatingRoleIds,
+            quarantineRoleId,
+            cancellationToken);
+
+        await RemoveUnneededActivatableRoles(
+            allMembers,
+            memberRole,
+            memberActivatingRoleIds,
+            quarantineRoleId,
+            cancellationToken);
+    }
+
+    private async Task MaintainBeginnerRoles(
+        DiscordGuild guild,
+        List<DiscordMember> allMembers,
+        ulong quarantineRoleId,
+        CancellationToken cancellationToken)
+    {
+        ulong beginnerRoleId = _options.BeginnerRoleId;
+        ulong[] beginnerActivatingRoleIds = _options.BeginnerActivatingRoleIds;
+        DiscordRole beginnerRole = guild.Roles[beginnerRoleId]
+                                   ?? throw new Exception($"Could not find Beginner role with id {beginnerRoleId}");
+
+        await AddMissingActivatableRoles(
+            allMembers,
+            beginnerRole,
+            beginnerActivatingRoleIds,
+            quarantineRoleId,
+            cancellationToken);
+
+        await RemoveUnneededActivatableRoles(
+            allMembers,
+            beginnerRole,
+            beginnerActivatingRoleIds,
+            quarantineRoleId,
+            cancellationToken);
+    }
+
+    private async Task AddMissingActivatableRoles(
+        List<DiscordMember> allMembers,
+        DiscordRole activatableRole,
+        ulong[] activatingRoleIds,
+        ulong quarantineRoleId,
+        CancellationToken cancellationToken)
+    {
+        List<DiscordMember> missingRoleMembers = allMembers
+            .Where(m => !HasMemberRole(m) && HasActivatingRoles(m) && !HasQuarantineRole(m))
             .ToList();
 
-        if (missingMemberRoleMembers.Count != 0)
-        {
-            int totalCount = missingMemberRoleMembers.Count;
+        if (missingRoleMembers.Count == 0) return;
 
-            _discordLogger.LogOperationMessage(
-                $"Found {missingMemberRoleMembers.Count} users which are missing the Member role.");
+        int totalCount = missingRoleMembers.Count;
 
-            int successCount = await ExecuteRoleChangeWithRetry(
-                missingMemberRoleMembers,
-                m => m.GrantRoleAsync(memberRole),
-                cancellationToken);
+        _discordLogger.LogOperationMessage(
+            $"Found {missingRoleMembers.Count} users which are missing the {activatableRole.Name} role.");
 
-            _discordLogger.LogOperationMessage($"Done adding Member role for {successCount}/{totalCount} users.");
-        }
+        int successCount = await ExecuteRoleChangeWithRetry(
+            missingRoleMembers,
+            m => m.GrantRoleAsync(activatableRole),
+            cancellationToken);
+
+        _discordLogger.LogOperationMessage(
+            $"Done adding {activatableRole.Name} role for {successCount}/{totalCount} users.");
 
         return;
 
-        bool HasMandatoryRoles(DiscordMember m)
+        bool HasActivatingRoles(DiscordMember m)
         {
-            return m.Roles.Any(r => memberRoleIds.Contains(r.Id));
+            return m.Roles.Any(r => activatingRoleIds.Contains(r.Id));
         }
 
         bool HasMemberRole(DiscordMember m)
         {
-            return m.Roles.Any(r => r.Id == memberRole.Id);
+            return m.Roles.Any(r => r.Id == activatableRole.Id);
         }
 
         bool HasQuarantineRole(DiscordMember m)
@@ -121,47 +163,62 @@ public class RoleMaintenanceJob : IJob
         }
     }
 
-    private async Task RemoveUnneededMemberRoles(
+    private async Task RemoveUnneededActivatableRoles(
         List<DiscordMember> allMembers,
-        ulong[] memberRoleIds,
-        DiscordRole memberRole,
+        DiscordRole activatableRole,
+        ulong[] activatingRoleIds,
         ulong quarantineRoleId,
         CancellationToken cancellationToken)
     {
         List<DiscordMember> memberRoleCandidates = allMembers
-            .Where(m => HasMemberRole(m) && (!HasMandatoryRoles(m) || HasQuarantineRole(m)))
+            .Where(m => HasMemberRole(m) && (!HasActivatingRoles(m) || HasQuarantineRole(m)))
             .ToList();
 
-        if (memberRoleCandidates.Count != 0)
-        {
-            int totalCount = memberRoleCandidates.Count;
+        if (memberRoleCandidates.Count == 0) return;
 
-            _discordLogger.LogOperationMessage($"Found {memberRoleCandidates.Count} users with unneeded Member role.");
+        int totalCount = memberRoleCandidates.Count;
 
-            int successCount = await ExecuteRoleChangeWithRetry(
-                memberRoleCandidates,
-                m => m.RevokeRoleAsync(memberRole),
-                cancellationToken);
+        _discordLogger.LogOperationMessage(
+            $"Found {memberRoleCandidates.Count} users with unneeded {activatableRole.Name} role.");
 
-            _discordLogger.LogOperationMessage($"Done removing Member role for {successCount}/{totalCount} users.");
-        }
+        int successCount = await ExecuteRoleChangeWithRetry(
+            memberRoleCandidates,
+            m => m.RevokeRoleAsync(activatableRole),
+            cancellationToken);
+
+        _discordLogger.LogOperationMessage(
+            $"Done removing {activatableRole.Name} role for {successCount}/{totalCount} users.");
 
         return;
 
-        bool HasMandatoryRoles(DiscordMember m)
+        bool HasActivatingRoles(DiscordMember m)
         {
-            return m.Roles.Any(r => memberRoleIds.Contains(r.Id));
+            return m.Roles.Any(r => activatingRoleIds.Contains(r.Id));
         }
 
         bool HasMemberRole(DiscordMember m)
         {
-            return m.Roles.Any(r => r.Id == memberRole.Id);
+            return m.Roles.Any(r => r.Id == activatableRole.Id);
         }
 
         bool HasQuarantineRole(DiscordMember m)
         {
             return m.Roles.Any(r => r.Id == quarantineRoleId);
         }
+    }
+
+    private async Task MaintainGhostRoles(
+        DiscordGuild guild,
+        List<DiscordMember> allMembers,
+        CancellationToken cancellationToken)
+    {
+        ulong ghostRoleId = _options.GhostRoleId;
+        DiscordRole ghostRole = guild.Roles[ghostRoleId]
+                                ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
+
+        await AddMissingGhostRoles(allMembers, ghostRole, cancellationToken);
+
+        await RemoveUnneededGhostRoles(allMembers, ghostRole, cancellationToken);
     }
 
     private async Task AddMissingGhostRoles(
