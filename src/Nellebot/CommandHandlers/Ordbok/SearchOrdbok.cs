@@ -28,6 +28,8 @@ public record SearchOrdbokQuery : BotSlashCommand
     public string Query { get; init; } = string.Empty;
 
     public string Dictionary { get; init; } = string.Empty;
+
+    public bool IsAutoComplete { get; init; }
 }
 
 public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
@@ -55,13 +57,31 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
         SlashCommandContext ctx = request.Ctx;
         string query = request.Query;
         string dictionary = request.Dictionary;
+        bool isAutoComplete = request.IsAutoComplete;
         DiscordUser user = ctx.User;
 
         await ctx.DeferResponseAsync();
 
+        var isExactSearch = false;
+
+        if (isAutoComplete)
+        {
+            Api.OrdbokSuggestResponse autoCompleteResult = await _ordbokClient.Suggest(
+                request.Dictionary,
+                query,
+                maxResults: 10,
+                cancellationToken);
+
+            isExactSearch = autoCompleteResult.SuggestionResults
+                .SelectMany(x => x.Value)
+                .Select(x => x.Item1)
+                .Contains(query, StringComparer.InvariantCultureIgnoreCase);
+        }
+
         Api.OrdbokSearchResponse? searchResponse = await _ordbokClient.Search(
             request.Dictionary,
             query,
+            isExactSearch,
             cancellationToken);
 
         int[]? articleIds = searchResponse?.Articles[dictionary];
@@ -73,7 +93,7 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
         }
 
         List<Api.Article?> ordbokArticles =
-            await _ordbokClient.GetArticlesV2(dictionary, articleIds, cancellationToken);
+            await _ordbokClient.GetArticles(dictionary, articleIds, cancellationToken);
 
         List<Article> articles = MapAndSelectArticles(ordbokArticles, dictionary);
 
@@ -99,6 +119,13 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
         int articleCount = articles.Count;
         var pageCount = (int)Math.Ceiling((double)articleCount / MaxArticlesPerPage);
 
+        // var z = new UriBuilder(queryUrl);
+        // z.Query = HttpUtility.UrlEncode(z.Query);
+        // Uri parsedUrl = z.Uri;
+
+        // var parsedUrl = new Uri(HttpUtility.UrlEncode(queryUrl));
+        string encodedUrl = EmbedBuilderHelper.EncodeUrlForDiscordEmbed(queryUrl);
+
         for (var i = 0; i < pageCount; i++)
         {
             int offset = i * MaxArticlesPerPage;
@@ -114,7 +141,7 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
 
             DiscordEmbedBuilder eb = new DiscordEmbedBuilder()
                 .WithTitle(title)
-                .WithUrl(queryUrl)
+                .WithUrl(encodedUrl)
                 .WithDescription(truncatedContent)
                 .WithFooter(CopyrightText)
                 .WithColor(DiscordConstants.DefaultEmbedColor);

@@ -12,8 +12,7 @@ namespace Nellebot.Services.Ordbok;
 
 public class OrdbokHttpClient
 {
-    private const int MaxArticles = 5;
-    private const int MaxArticlesV2 = 50;
+    private const int MaxArticles = 50;
 
     private readonly HttpClient _client;
 
@@ -25,12 +24,19 @@ public class OrdbokHttpClient
         _client.DefaultRequestHeaders.Add("Accept", "application/json");
     }
 
-    public async Task<OrdbokSearchResponse?> Search(
+    public async Task<OrdbokSearchResponse> Search(
         string dictionary,
-        string query,
+        string searchText,
+        bool exact,
         CancellationToken cancellationToken = default)
     {
-        var requestUri = $"api/articles?w={query}&dict={dictionary}&scope=ei";
+        const string scope = "ei";
+        if (!exact && !searchText.Contains('*') && !searchText.Contains('%'))
+        {
+            searchText = $"*{searchText}*";
+        }
+
+        var requestUri = $"api/articles?w={searchText}&dict={dictionary}&scope={scope}";
 
         HttpResponseMessage response = await _client.GetAsync(requestUri, cancellationToken);
 
@@ -39,12 +45,15 @@ public class OrdbokHttpClient
         Stream jsonStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         var searchResponse =
-            await JsonSerializer.DeserializeAsync<OrdbokSearchResponse>(jsonStream, options: null, cancellationToken);
+            await JsonSerializer.DeserializeAsync<OrdbokSearchResponse>(
+                jsonStream,
+                options: null,
+                cancellationToken);
 
-        return searchResponse;
+        return searchResponse ?? throw new InvalidOperationException("Unable to deserialize response");
     }
 
-    public async Task<OrdbokSearchResponse?> GetAll(
+    public async Task<OrdbokSearchResponse> GetAll(
         string dictionary,
         string wordClass,
         CancellationToken cancellationToken = default)
@@ -60,7 +69,7 @@ public class OrdbokHttpClient
         var searchResponse =
             await JsonSerializer.DeserializeAsync<OrdbokSearchResponse>(jsonStream, options: null, cancellationToken);
 
-        return searchResponse;
+        return searchResponse ?? throw new InvalidOperationException("Unable to deserialize response");
     }
 
     public async Task<OrdbokSuggestResponse> Suggest(
@@ -101,40 +110,19 @@ public class OrdbokHttpClient
         return article;
     }
 
-    public async Task<List<Article?>> GetArticles(
+    public async Task<List<Article>> GetArticles(
         string dictionary,
-        List<int> articleIds,
+        int[] articleIds,
         CancellationToken cancellationToken = default)
     {
         IEnumerable<Task<Article?>> tasks = articleIds.Take(MaxArticles)
             .Select(id => GetArticle(dictionary, id, cancellationToken));
 
-        Article?[]? result = await Task.WhenAll(tasks);
+        Article?[] result = await Task.WhenAll(tasks);
 
-        if (result == null)
-        {
-            return Enumerable.Empty<Article?>().ToList();
-        }
+        List<Article> nonNullArticles = result.Where(a => a != null).Select(a => a!).ToList();
 
-        return result.ToList();
-    }
-
-    public async Task<List<Article?>> GetArticlesV2(
-        string dictionary,
-        int[] articleIds,
-        CancellationToken cancellationToken = default)
-    {
-        IEnumerable<Task<Article?>> tasks = articleIds.Take(MaxArticlesV2)
-            .Select(id => GetArticle(dictionary, id, cancellationToken));
-
-        Article?[]? result = await Task.WhenAll(tasks);
-
-        if (result == null)
-        {
-            return Enumerable.Empty<Article?>().ToList();
-        }
-
-        return result.ToList();
+        return nonNullArticles;
     }
 
     public async Task<OrdbokConcepts?> GetConcepts(string dictionary, CancellationToken cancellationToken = default)
