@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Web;
 using DSharpPlus.Entities;
 
 namespace Nellebot.Utils;
@@ -25,5 +28,20 @@ public static class EmbedBuilderHelper
             .WithColor(color);
 
         return eb.Build();
+    }
+
+    public static string EncodeUrlForDiscordEmbed(string url)
+    {
+        var uri = new Uri(url);
+        NameValueCollection query = HttpUtility.ParseQueryString(uri.Query);
+        string encodedQuery = string.Join(
+            "&",
+            query.AllKeys.Select(key => $"{key}={Uri.EscapeDataString(query[key])}"));
+
+        string baseUrl = uri.GetLeftPart(UriPartial.Authority);
+        if (uri.AbsolutePath != "/")
+            baseUrl += uri.AbsolutePath;
+
+        return $"{baseUrl}?{encodedQuery}";
     }
 }
