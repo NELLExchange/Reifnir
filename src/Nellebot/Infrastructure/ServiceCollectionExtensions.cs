@@ -71,7 +71,12 @@ public static class ServiceCollectionExtensions
 
                 builder.EnableSensitiveDataLogging(logLevel == "Debug");
 
-                builder.UseNpgsql(dbConnString);
+                // EnableDynamicJson() enables legacy POCO mapping
+                // TODO: Migrate to "ToJson" in .NET/EF 10
+                // https://www.npgsql.org/efcore/mapping/json.html
+                builder.UseNpgsql(
+                    dbConnString,
+                    opts => { opts.ConfigureDataSource(x => { x.EnableDynamicJson(); }); });
             },
             ServiceLifetime.Transient,
             ServiceLifetime.Singleton);
