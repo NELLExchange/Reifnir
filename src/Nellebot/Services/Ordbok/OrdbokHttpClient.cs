@@ -63,6 +63,26 @@ public class OrdbokHttpClient
         return searchResponse;
     }
 
+    public async Task<OrdbokSuggestResponse> Suggest(
+        string dictionary,
+        string query,
+        int maxResults,
+        CancellationToken cancellationToken = default)
+    {
+        var requestUri = $"api/suggest?q={query}&dict={dictionary}&n={maxResults}&include=ei";
+
+        HttpResponseMessage response = await _client.GetAsync(requestUri, cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        Stream jsonStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+        var searchResponse =
+            await JsonSerializer.DeserializeAsync<OrdbokSuggestResponse>(jsonStream, options: null, cancellationToken);
+
+        return searchResponse ?? throw new InvalidOperationException("Unable to deserialize response");
+    }
+
     public async Task<Article?> GetArticle(
         string dictionary,
         int articleId,

@@ -10,5 +10,5 @@ public record OrdbokArticleStore
 
     public int ArticleCount { get; set; }
 
-    public int[] ArticleList { get; set; } = Array.Empty<int>();
+    public int[] ArticleList { get; set; } = [];
 }
