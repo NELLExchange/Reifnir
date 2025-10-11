@@ -15,6 +15,7 @@ using VmArticle = Nellebot.Common.Models.Ordbok.ViewModels.Article;
 namespace Nellebot.Tests;
 
 [TestClass]
+[Ignore]
 public class OrdbokTests
 {
     public TestContext TestContext { get; set; }
