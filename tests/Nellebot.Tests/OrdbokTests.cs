@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nellebot.Common.Models.Ordbok.ViewModels;
 using Nellebot.Services;
 using Nellebot.Services.Ordbok;
+using Nellebot.Utils;
 using NSubstitute;
 using OrdbokApi = Nellebot.Common.Models.Ordbok.Api;
 
@@ -44,5 +45,16 @@ public class OrdbokTests
         {
             Assert.Fail(ex.ToString());
         }
+    }
+
+    [TestMethod]
+    public void TestDiscordEmbedUrlEncoding()
+    {
+        const string queryUrl = "https://site.example.com?q=query with spaces";
+        const string expectedUrl = "https://site.example.com?q=query%20with%20spaces";
+
+        string actualUrl = EmbedBuilderHelper.EncodeUrlForDiscordEmbed(queryUrl);
+
+        Assert.AreEqual(expectedUrl, actualUrl);
     }
 }
