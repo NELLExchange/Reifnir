@@ -1,0 +1,20 @@
+meta {
+  name: suggest
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/suggest?q=hus&dict=bm,nn
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: hus
+  dict: bm,nn
+}
+
+settings {
+  encodeUrl: true
+}
