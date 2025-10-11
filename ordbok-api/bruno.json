@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "ordbok-api",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

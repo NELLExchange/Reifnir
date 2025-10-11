@@ -1,0 +1,20 @@
+meta {
+  name: articles
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/articles?w=hus&dict=bm,nn
+  body: none
+  auth: inherit
+}
+
+params:query {
+  w: hus
+  dict: bm,nn
+}
+
+settings {
+  encodeUrl: true
+}
