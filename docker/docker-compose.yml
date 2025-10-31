@@ -12,6 +12,17 @@ services:
       - nellebot-keydata:/keydata
       - ${HOME}/.nellebot-certs:/certs
       - ${HOME}/.microsoft/usersecrets:/home/app/.microsoft/usersecrets:ro
+      - nellebot-diag-tmp:/tmp
+  
+  nellebot-diagnostics:
+    build:
+      context: ..
+      dockerfile: src/Nellebot/diag.Dockerfile
+    tty: true
+    volumes:
+      - nellebot-diag-tmp:/tmp:ro
+    profiles:
+      - diagnostics
 
   nellebot-pgsql:
     image: postgres:15.5
@@ -42,4 +53,6 @@ volumes:
   nellebot-keydata:
     driver: local
   nellebot-pgdata:
+    driver: local
+  nellebot-diag-tmp:
     driver: local
