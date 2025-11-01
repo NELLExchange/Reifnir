@@ -3,6 +3,7 @@ name: nellebot
 services:
   nellebot:
     image: ghcr.io/nellexchange/reifnir:${IMAGE_TAG}
+    tty: true
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal=$HOST_GATEWAY_IP"
@@ -17,9 +18,11 @@ services:
 
   nellebot-diagnostics:
     image: ghcr.io/selfdocumentingcode/dotnet-diag-tools:9.0
+    tty: true
+    pid: service:nellebot
     restart: unless-stopped
     volumes:
-      - nellebot-diag-tmp:/tmp:ro
+      - nellebot-diag-tmp:/tmp
       
 volumes:
   nellebot-keydata:

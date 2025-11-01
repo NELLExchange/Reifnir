@@ -19,8 +19,9 @@ services:
       context: ..
       dockerfile: src/Nellebot/diag.Dockerfile
     tty: true
+    pid: service:nellebot
     volumes:
-      - nellebot-diag-tmp:/tmp:ro
+      - nellebot-diag-tmp:/tmp
     profiles:
       - diagnostics
 

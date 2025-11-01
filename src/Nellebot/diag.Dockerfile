@@ -7,3 +7,5 @@ RUN dotnet tool install -g dotnet-counters && \
     dotnet tool install -g dotnet-stack
 
 ENV PATH="/root/.dotnet/tools:$PATH"
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
