@@ -12,14 +12,14 @@ namespace Nellebot.Workers;
 
 public class DiscordLoggerWorker : BackgroundService
 {
-    private readonly DiscordLogChannel _channel;
+    private readonly DiscordLoggerChannel _channel;
     private readonly DiscordClient _client;
     private readonly ILogger<DiscordLoggerWorker> _logger;
     private readonly BotOptions _options;
 
     public DiscordLoggerWorker(
         ILogger<DiscordLoggerWorker> logger,
-        DiscordLogChannel channel,
+        DiscordLoggerChannel channel,
         DiscordClient client,
         IOptions<BotOptions> options)
     {

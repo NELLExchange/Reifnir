@@ -7,11 +7,11 @@ namespace Nellebot.Services.Loggers;
 
 public class DiscordLogger
 {
-    private readonly DiscordLogChannel _channel;
+    private readonly DiscordLoggerChannel _channel;
     private readonly ILogger<DiscordLogger> _logger;
     private readonly BotOptions _options;
 
-    public DiscordLogger(IOptions<BotOptions> options, DiscordLogChannel channel, ILogger<DiscordLogger> logger)
+    public DiscordLogger(IOptions<BotOptions> options, DiscordLoggerChannel channel, ILogger<DiscordLogger> logger)
     {
         _options = options.Value;
         _channel = channel;

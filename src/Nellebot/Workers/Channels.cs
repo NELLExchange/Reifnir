@@ -67,9 +67,9 @@ public record DiscordLogItem<T>(
     bool SuppressNotifications = false)
     : BaseDiscordLogItem(DiscordGuildId, DiscordChannelId);
 
-public class DiscordLogChannel : AbstractQueueChannel<BaseDiscordLogItem>
+public class DiscordLoggerChannel : AbstractQueueChannel<BaseDiscordLogItem>
 {
-    public DiscordLogChannel(Channel<BaseDiscordLogItem> channel)
+    public DiscordLoggerChannel(Channel<BaseDiscordLogItem> channel)
         : base(channel)
     { }
 }

@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nellebot.Infrastructure;
@@ -13,19 +14,19 @@ namespace Nellebot.Workers;
 public class EventQueueWorker : BackgroundService
 {
     private readonly EventQueueChannel _channel;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly ILogger<EventQueueWorker> _logger;
-    private readonly NotificationPublisher _publisher;
 
     public EventQueueWorker(
         ILogger<EventQueueWorker> logger,
         EventQueueChannel channel,
-        NotificationPublisher publisher,
+        IServiceScopeFactory scopeFactory,
         IDiscordErrorLogger discordErrorLogger)
     {
         _logger = logger;
         _channel = channel;
-        _publisher = publisher;
+        _scopeFactory = scopeFactory;
         _discordErrorLogger = discordErrorLogger;
     }
 
@@ -39,7 +40,10 @@ public class EventQueueWorker : BackgroundService
 
                 try
                 {
-                    await _publisher.Publish(notification, stoppingToken);
+                    using var scope = _scopeFactory.CreateScope();
+                    var publisher = scope.ServiceProvider.GetRequiredService<NotificationPublisher>();
+
+                    await publisher.Publish(notification, stoppingToken);
                 }
                 catch (AggregateException ex)
                 {
