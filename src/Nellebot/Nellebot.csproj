@@ -19,15 +19,15 @@
         <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02549" />
         <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02549" />
         <PackageReference Include="MediatR" Version="12.5.0" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="9.0.8" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="9.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="9.0.10" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-        <PackageReference Include="Quartz" Version="3.15.0" />
-        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.0" />
-        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.0" />
+        <PackageReference Include="Quartz" Version="3.15.1" />
+        <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.1" />
+        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.1" />
         <PackageReference Include="Scriban" Version="6.3.0" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
             <PrivateAssets>all</PrivateAssets>
