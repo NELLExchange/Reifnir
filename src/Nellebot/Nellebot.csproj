@@ -28,7 +28,7 @@
         <PackageReference Include="Quartz" Version="3.15.1" />
         <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.1" />
         <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.1" />
-        <PackageReference Include="Scriban" Version="6.3.0" />
+        <PackageReference Include="Scriban" Version="6.5.0" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
