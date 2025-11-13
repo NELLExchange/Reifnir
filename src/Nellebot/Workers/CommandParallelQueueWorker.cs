@@ -38,10 +38,14 @@ public class CommandParallelQueueWorker : BackgroundService
                     "Dequeued parallel command. {RemainingMessageCount} left in queue",
                     _channel.Reader.Count);
 
-                using var scope = _scopeFactory.CreateScope();
-                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-                _ = Task.Run(() => mediator.Send(command, stoppingToken), stoppingToken);
+                _ = Task.Run(
+                    async () =>
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                        await mediator.Send(command, stoppingToken);
+                    },
+                    stoppingToken);
             }
         }
         catch (TaskCanceledException)

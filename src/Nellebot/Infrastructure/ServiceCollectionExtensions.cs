@@ -41,6 +41,8 @@ public static class ServiceCollectionExtensions
 
         var clientBuilder = DiscordClientBuilder.CreateDefault(botToken, DiscordIntents.All, services);
 
+        clientBuilder.ConfigureExtraFeatures(cfg => { cfg.LogUnknownEvents = false; });
+
         clientBuilder.SetLogLevel(logLevel);
 
         clientBuilder.RegisterCommands(configuration);

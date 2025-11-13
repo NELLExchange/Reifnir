@@ -41,7 +41,7 @@ public class NotificationPublisher
             {
                 exceptions.AddRange(ex.Flatten().InnerExceptions);
             }
-            catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
+            catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
             {
                 exceptions.Add(ex);
             }
