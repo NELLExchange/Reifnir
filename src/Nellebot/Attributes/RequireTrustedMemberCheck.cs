@@ -15,7 +15,8 @@ public class RequireTrustedMemberCheck : IContextCheck<RequireTrustedMemberAttri
 {
     public ValueTask<string?> ExecuteCheckAsync(RequireTrustedMemberAttribute attribute, CommandContext ctx)
     {
-        var authorizationService = ctx.Client.ServiceProvider.GetRequiredService<AuthorizationService>();
+        using var scope = ctx.Client.ServiceProvider.CreateScope();
+        var authorizationService = scope.ServiceProvider.GetRequiredService<AuthorizationService>();
 
         if (ctx.Member is null) return ValueTask.FromResult<string?>("This command must be executed in a guild.");
 
