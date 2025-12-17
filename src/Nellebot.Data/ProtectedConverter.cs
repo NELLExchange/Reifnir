@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -9,11 +10,13 @@ public class ProtectedConverter : ValueConverter<ulong, string>
 {
     public ProtectedConverter(IDataProtectionProvider provider, string purpose)
         : this(new Wrapper(provider, purpose))
-    { }
+    {
+    }
 
     private ProtectedConverter(Wrapper wrapper)
         : base(wrapper.To, wrapper.From)
-    { }
+    {
+    }
 
     private class Wrapper
     {
@@ -26,6 +29,19 @@ public class ProtectedConverter : ValueConverter<ulong, string>
 
         public Expression<Func<ulong, string>> To => x => _dataProtector.Protect(x.ToString());
 
-        public Expression<Func<string, ulong>> From => x => ulong.Parse(_dataProtector.Unprotect(x));
+        public Expression<Func<string, ulong>> From =>
+            x => ulong.Parse(TryUnprotect(_dataProtector, x, 0UL.ToString()));
+
+        private static string TryUnprotect(IDataProtector protector, string protectedString, string defaultValue)
+        {
+            try
+            {
+                return protector.Unprotect(protectedString);
+            }
+            catch (CryptographicException ex) when (ex.Message.Contains("not found in the key ring"))
+            {
+                return defaultValue;
+            }
+        }
     }
 }

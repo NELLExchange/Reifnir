@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using MediatR;
@@ -8,13 +7,11 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Nellebot;
 using Nellebot.CommandHandlers;
 using Nellebot.Data.Repositories;
 using Nellebot.Infrastructure;
 using Nellebot.Services;
-using Nellebot.Services.HtmlToImage;
 using Nellebot.Services.Loggers;
 using Nellebot.Services.Ordbok;
 using Nellebot.Utils;
@@ -57,13 +54,9 @@ services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssemblyContaining<Program>();
     cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CommandRequestPipelineBehaviour<,>));
 });
+
+// Registered as Transient to match lifetime of MediatR
 services.AddTransient<NotificationPublisher>();
-
-services.AddSingleton<SharedCache>();
-services.AddSingleton<ILocalizationService, LocalizationService>();
-services.AddSingleton<PuppeteerFactory>();
-
-services.AddSingleton<GoodbyeMessageBuffer>();
 
 AddWorkers(services);
 
@@ -85,32 +78,36 @@ app.Run();
 
 return;
 
-static void AddRepositories(IServiceCollection services)
-{
-    services.AddTransient<AwardMessageRepository>();
-    services.AddTransient<BotSettingsRepository>();
-    services.AddTransient<MessageRefRepository>();
-    services.AddTransient<UserLogRepository>();
-    services.AddTransient<ModmailTicketRepository>();
-    services.AddTransient<OrdbokRepository>();
-    services.AddTransient<MessageTemplateRepository>();
-}
-
 static void AddInternalServices(IServiceCollection services)
 {
-    services.AddTransient<AuthorizationService>();
-    services.AddTransient<IDiscordErrorLogger, DiscordErrorLogger>();
-    services.AddTransient<DiscordLogger>();
-    services.AddTransient<AwardMessageService>();
-    services.AddTransient<DiscordResolver>();
-    services.AddTransient<ScribanTemplateLoader>();
-    services.AddTransient<OrdbokModelMapper>();
-    services.AddTransient<IOrdbokContentParser, OrdbokContentParser>();
-    services.AddTransient<HtmlToImageService>();
-    services.AddTransient<BotSettingsService>();
-    services.AddTransient<MessageRefsService>();
-    services.AddTransient<UserLogService>();
-    services.AddTransient<QuarantineService>();
+    services.AddSingleton<SharedCache>();
+    services.AddSingleton<GoodbyeMessageBuffer>();
+
+    services.AddSingleton<DiscordLogger>();
+    services.AddSingleton<IDiscordErrorLogger, DiscordErrorLogger>();
+    services.AddSingleton<DiscordResolver>();
+
+    services.AddScoped<AuthorizationService>();
+    services.AddScoped<AwardMessageService>();
+    services.AddScoped<ScribanTemplateLoader>();
+    services.AddScoped<ILocalizationService, LocalizationService>();
+    services.AddScoped<OrdbokModelMapper>();
+    services.AddScoped<IOrdbokContentParser, OrdbokContentParser>();
+    services.AddScoped<BotSettingsService>();
+    services.AddScoped<MessageRefsService>();
+    services.AddScoped<UserLogService>();
+    services.AddScoped<QuarantineService>();
+}
+
+static void AddRepositories(IServiceCollection services)
+{
+    services.AddScoped<AwardMessageRepository>();
+    services.AddScoped<BotSettingsRepository>();
+    services.AddScoped<MessageRefRepository>();
+    services.AddScoped<UserLogRepository>();
+    services.AddScoped<ModmailTicketRepository>();
+    services.AddScoped<OrdbokRepository>();
+    services.AddScoped<MessageTemplateRepository>();
 }
 
 static void AddChannels(IServiceCollection services)
@@ -121,7 +118,7 @@ static void AddChannels(IServiceCollection services)
     services.AddSingleton(new CommandQueueChannel(Channel.CreateBounded<ICommand>(channelSize)));
     services.AddSingleton(new CommandParallelQueueChannel(Channel.CreateBounded<ICommand>(channelSize)));
     services.AddSingleton(new EventQueueChannel(Channel.CreateBounded<INotification>(channelSize)));
-    services.AddSingleton(new DiscordLogChannel(Channel.CreateBounded<BaseDiscordLogItem>(channelSize)));
+    services.AddSingleton(new DiscordLoggerChannel(Channel.CreateBounded<BaseDiscordLogItem>(channelSize)));
 }
 
 static void AddWorkers(IServiceCollection services)

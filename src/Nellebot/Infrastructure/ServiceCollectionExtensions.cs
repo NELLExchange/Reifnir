@@ -41,6 +41,8 @@ public static class ServiceCollectionExtensions
 
         var clientBuilder = DiscordClientBuilder.CreateDefault(botToken, DiscordIntents.All, services);
 
+        clientBuilder.ConfigureExtraFeatures(cfg => { cfg.LogUnknownEvents = false; });
+
         clientBuilder.SetLogLevel(logLevel);
 
         clientBuilder.RegisterCommands(configuration);
@@ -63,18 +65,20 @@ public static class ServiceCollectionExtensions
 
     public static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<BotDbContext>(
-            builder =>
-            {
-                var dbConnString = configuration.GetValue<string>("Nellebot:ConnectionString");
-                var logLevel = configuration.GetValue<string>("Logging:LogLevel:Default");
+        services.AddDbContext<BotDbContext>(builder =>
+        {
+            var dbConnString = configuration.GetValue<string>("Nellebot:ConnectionString");
+            var logLevel = configuration.GetValue<string>("Logging:LogLevel:Default");
 
-                builder.EnableSensitiveDataLogging(logLevel == "Debug");
+            builder.EnableSensitiveDataLogging(logLevel == "Debug");
 
-                builder.UseNpgsql(dbConnString);
-            },
-            ServiceLifetime.Transient,
-            ServiceLifetime.Singleton);
+            // EnableDynamicJson() enables legacy POCO mapping
+            // TODO: Migrate to "ToJson" in .NET/EF 10
+            // https://www.npgsql.org/efcore/mapping/json.html
+            builder.UseNpgsql(
+                dbConnString,
+                opts => { opts.ConfigureDataSource(x => { x.EnableDynamicJson(); }); });
+        });
     }
 
     private static void RegisterCommands(this DiscordClientBuilder builder, IConfiguration configuration)

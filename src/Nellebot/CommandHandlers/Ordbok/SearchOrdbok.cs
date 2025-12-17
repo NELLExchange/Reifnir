@@ -1,42 +1,42 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using MediatR;
-using Microsoft.Extensions.Logging;
 using Nellebot.Common.Models.Ordbok;
+using Nellebot.Common.Models.Ordbok.ViewModels;
 using Nellebot.Services;
-using Nellebot.Services.HtmlToImage;
 using Nellebot.Services.Ordbok;
 using Nellebot.Utils;
 using Scriban;
 using Api = Nellebot.Common.Models.Ordbok.Api;
-using Vm = Nellebot.Common.Models.Ordbok.ViewModels;
 
 namespace Nellebot.CommandHandlers.Ordbok;
 
-public record SearchOrdbokQuery : BotCommandQuery
+public record SearchOrdbokQuery : BotSlashCommand
 {
-    public SearchOrdbokQuery(CommandContext ctx)
+    public SearchOrdbokQuery(SlashCommandContext ctx)
         : base(ctx)
-    { }
+    {
+    }
 
     public string Query { get; init; } = string.Empty;
 
     public string Dictionary { get; init; } = string.Empty;
 
-    public bool AttachTemplate { get; init; }
+    public bool IsAutoComplete { get; init; }
 }
 
 public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
 {
+    private const int MaxArticlesPerPage = 5;
     private const int MaxDefinitionsInTextForm = 5;
-    private readonly HtmlToImageService _htmlToImageService;
-    private readonly ILogger<SearchOrdbokHandler> _logger;
+    private const string CopyrightText = "Universitetet i Bergen og Språkrådet - ordbokene.no";
 
     private readonly OrdbokHttpClient _ordbokClient;
     private readonly OrdbokModelMapper _ordbokModelMapper;
@@ -45,128 +45,126 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
     public SearchOrdbokHandler(
         OrdbokHttpClient ordbokClient,
         OrdbokModelMapper ordbokModelMapper,
-        ScribanTemplateLoader templateLoader,
-        HtmlToImageService htmlToImageService,
-        ILogger<SearchOrdbokHandler> logger)
+        ScribanTemplateLoader templateLoader)
     {
         _ordbokClient = ordbokClient;
         _ordbokModelMapper = ordbokModelMapper;
         _templateLoader = templateLoader;
-        _htmlToImageService = htmlToImageService;
-        _logger = logger;
     }
 
     public async Task Handle(SearchOrdbokQuery request, CancellationToken cancellationToken)
     {
-        CommandContext ctx = request.Ctx;
+        SlashCommandContext ctx = request.Ctx;
         string query = request.Query;
         string dictionary = request.Dictionary;
-        bool attachTemplate = request.AttachTemplate;
+        bool isAutoComplete = request.IsAutoComplete;
+        DiscordUser user = ctx.User;
+
+        await ctx.DeferResponseAsync();
+
+        var isExactSearch = false;
+
+        if (isAutoComplete)
+        {
+            Api.OrdbokSuggestResponse autoCompleteResult = await _ordbokClient.Suggest(
+                request.Dictionary,
+                query,
+                maxResults: 10,
+                cancellationToken);
+
+            isExactSearch = autoCompleteResult.SuggestionResults
+                .SelectMany(x => x.Value)
+                .Select(x => x.Item1)
+                .Contains(query, StringComparer.InvariantCultureIgnoreCase);
+        }
 
         Api.OrdbokSearchResponse? searchResponse = await _ordbokClient.Search(
             request.Dictionary,
             query,
+            isExactSearch,
             cancellationToken);
 
         int[]? articleIds = searchResponse?.Articles[dictionary];
 
         if (articleIds == null || articleIds.Length == 0)
         {
-            await ctx.RespondAsync("No match");
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("No match"));
             return;
         }
 
         List<Api.Article?> ordbokArticles =
-            await _ordbokClient.GetArticles(dictionary, articleIds.ToList(), cancellationToken);
+            await _ordbokClient.GetArticles(dictionary, articleIds, cancellationToken);
 
-        List<Vm.Article> articles = MapAndSelectArticles(ordbokArticles, dictionary);
+        List<Article> articles = MapAndSelectArticles(ordbokArticles, dictionary);
 
-        var queryUrl = $"https://ordbokene.no/{(dictionary == OrdbokDictionaryMap.Bokmal ? "bm" : "nn")}/w/{query}";
+        var title =
+            $"{(dictionary == OrdbokDictionaryMap.Bokmal ? "Bokmålsordboka" : "Nynorskordboka")} | {articles.Count} treff";
 
-        string textTemplateResult = await RenderTextTemplate(articles);
+        var queryUrl =
+            $"https://ordbokene.no/{(dictionary == OrdbokDictionaryMap.Bokmal ? "bm" : "nn")}/search?q={query}&scope=ei";
 
-        string htmlTemplateResult = await RenderHtmlTemplate(dictionary, articles);
+        IEnumerable<Page> messagePages = await BuildPages(articles, title, queryUrl);
 
-        string truncatedContent = textTemplateResult.Substring(
-            0,
-            Math.Min(
-                textTemplateResult.Length,
-                DiscordConstants.MaxEmbedContentLength));
-
-        DiscordEmbedBuilder eb = new DiscordEmbedBuilder()
-            .WithTitle(dictionary == OrdbokDictionaryMap.Bokmal ? "Bokmålsordboka" : "Nynorskordboka")
-            .WithUrl(queryUrl)
-            .WithDescription(truncatedContent)
-            .WithFooter("Universitetet i Bergen og Språkrådet - ordbokene.no")
-            .WithColor(DiscordConstants.DefaultEmbedColor);
-
-        var mb = new DiscordMessageBuilder();
-
-        FileStream? imageFileStream = null;
-        FileStream? htmlFileStream = null;
-
-        try
-        {
-            GenerateImageFileResult result = await _htmlToImageService.GenerateImageFile(htmlTemplateResult);
-
-            imageFileStream = result.ImageFileStream;
-            htmlFileStream = result.HtmlFileStream;
-
-            if (!attachTemplate)
-            {
-                eb = eb.WithImageUrl($"attachment://{result.ImageFileName}");
-                mb = mb.AddFile(result.ImageFileName, result.ImageFileStream);
-            }
-            else
-            {
-                mb = mb.AddFile(result.HtmlFileStream);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, nameof(SearchOrdbokQuery));
-        }
-
-        mb = mb.AddEmbed(eb.Build());
-
-        await ctx.RespondAsync(mb);
-
-        if (imageFileStream != null)
-        {
-            await imageFileStream.DisposeAsync();
-        }
-
-        if (htmlFileStream != null)
-        {
-            await htmlFileStream.DisposeAsync();
-        }
+        await ctx.Interaction.SendPaginatedResponseAsync(
+            ephemeral: false,
+            user,
+            messagePages,
+            token: cancellationToken);
     }
 
-    private async Task<string> RenderTextTemplate(List<Vm.Article> articles)
+    private async Task<IEnumerable<Page>> BuildPages(List<Article> articles, string title, string queryUrl)
     {
-        string textTemplateSource = await _templateLoader.LoadTemplate("OrdbokArticle", ScribanTemplateType.Text);
-        Template? textTemplate = Template.Parse(textTemplateSource);
+        var pages = new List<Page>();
 
-        int maxDefinitions = MaxDefinitionsInTextForm;
+        int articleCount = articles.Count;
+        var pageCount = (int)Math.Ceiling((double)articleCount / MaxArticlesPerPage);
 
-        string? textTemplateResult = textTemplate.Render(new { articles, maxDefinitions });
+        // var z = new UriBuilder(queryUrl);
+        // z.Query = HttpUtility.UrlEncode(z.Query);
+        // Uri parsedUrl = z.Uri;
+
+        // var parsedUrl = new Uri(HttpUtility.UrlEncode(queryUrl));
+        string encodedUrl = EmbedBuilderHelper.EncodeUrlForDiscordEmbed(queryUrl);
+
+        for (var i = 0; i < pageCount; i++)
+        {
+            int offset = i * MaxArticlesPerPage;
+
+            List<Article> articlesOnPage = articles.Skip(offset).Take(MaxArticlesPerPage).ToList();
+
+            var pagination = new PaginationArgs(offset + 1, i + 1, pageCount);
+
+            string renderedTemplate = await RenderTextTemplate(articlesOnPage, pagination);
+
+            string truncatedContent =
+                renderedTemplate[..Math.Min(renderedTemplate.Length, DiscordConstants.MaxEmbedContentLength)];
+
+            DiscordEmbedBuilder eb = new DiscordEmbedBuilder()
+                .WithTitle(title)
+                .WithUrl(encodedUrl)
+                .WithDescription(truncatedContent)
+                .WithFooter(CopyrightText)
+                .WithColor(DiscordConstants.DefaultEmbedColor);
+
+            pages.Add(new Page(embed: eb));
+        }
+
+        return pages;
+    }
+
+    private async Task<string> RenderTextTemplate(List<Article> articles, PaginationArgs pagination)
+    {
+        Template textTemplate = await _templateLoader.LoadTemplate("OrdbokArticle");
+
+        string? textTemplateResult =
+            await textTemplate.RenderAsync(new { articles, pagination, maxDefinitions = MaxDefinitionsInTextForm });
 
         return textTemplateResult;
     }
 
-    private async Task<string> RenderHtmlTemplate(string dictionary, List<Vm.Article> articles)
+    private List<Article> MapAndSelectArticles(List<Api.Article?> ordbokArticles, string dictionary)
     {
-        string htmlTemplateSource = await _templateLoader.LoadTemplate("OrdbokArticle", ScribanTemplateType.Html);
-        Template? htmlTemplate = Template.Parse(htmlTemplateSource);
-
-        string? htmlTemplateResult = htmlTemplate.Render(new { articles, dictionary });
-
-        return htmlTemplateResult;
-    }
-
-    private List<Vm.Article> MapAndSelectArticles(List<Api.Article?> ordbokArticles, string dictionary)
-    {
-        List<Vm.Article> articles = ordbokArticles
+        List<Article> articles = ordbokArticles
             .Where(a => a != null)
             .Select(x => _ordbokModelMapper.MapArticle(x!, dictionary))
             .OrderBy(a => a.Lemmas.Max(l => l.HgNo))
@@ -175,3 +173,5 @@ public class SearchOrdbokHandler : IRequestHandler<SearchOrdbokQuery>
         return articles;
     }
 }
+
+internal record PaginationArgs(int PageOffset, int CurrentPage, int PageCount);

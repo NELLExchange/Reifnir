@@ -1,4 +1,5 @@
 workflow: TrunkBased/preview1
+next-version: 2.0.0
 assembly-informational-format: '{FullSemVer}'
 major-version-bump-message: "^(build|chore|ci|docs|feat|feature|fix|bug|bugfix|perf|refactor|revert|style|test)(\\([\\w\\s-,/\\\\]*\\))?(!:|:.*\\n\\n((.+\\n)+\\n)?BREAKING CHANGE:\\s.+)"
 minor-version-bump-message: "^(feat|feature)(\\([\\w\\s-,/\\\\]*\\))?(:|/)"

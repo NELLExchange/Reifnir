@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nellebot.CommandHandlers;
@@ -11,33 +12,40 @@ namespace Nellebot.Workers;
 public class CommandParallelQueueWorker : BackgroundService
 {
     private readonly CommandParallelQueueChannel _channel;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CommandParallelQueueWorker> _logger;
-    private readonly IMediator _mediator;
 
     public CommandParallelQueueWorker(
         ILogger<CommandParallelQueueWorker> logger,
         CommandParallelQueueChannel channel,
-        IMediator mediator)
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _channel = channel;
-        _mediator = mediator;
+        _scopeFactory = scopeFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            await foreach (ICommand? command in _channel.Reader.ReadAllAsync(stoppingToken))
+            await foreach (ICommand command in _channel.Reader.ReadAllAsync(stoppingToken))
             {
-                if (command != null)
-                {
-                    _logger.LogDebug(
-                        "Dequeued parallel command. {RemainingMessageCount} left in queue",
-                        _channel.Reader.Count);
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+                if (command == null) continue;
 
-                    _ = Task.Run(() => _mediator.Send(command, stoppingToken), stoppingToken);
-                }
+                _logger.LogDebug(
+                    "Dequeued parallel command. {RemainingMessageCount} left in queue",
+                    _channel.Reader.Count);
+
+                _ = Task.Run(
+                    async () =>
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                        await mediator.Send(command, stoppingToken);
+                    },
+                    stoppingToken);
             }
         }
         catch (TaskCanceledException)

@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.ComponentModel;
+using System.Threading.Tasks;
 using DSharpPlus.Commands;
-using DSharpPlus.Commands.ArgumentModifiers;
-using DSharpPlus.Commands.Processors.TextCommands;
-using DSharpPlus.Commands.Trees.Metadata;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 using Nellebot.Attributes;
 using Nellebot.CommandHandlers.Ordbok;
 using Nellebot.Common.Models.Ordbok;
@@ -10,20 +10,58 @@ using Nellebot.Workers;
 
 namespace Nellebot.CommandModules;
 
-public class OrdbokLegacyLegacy
+public class OrdbokModule
 {
     private readonly RequestQueueChannel _requestQueue;
 
-    public OrdbokLegacyLegacy(RequestQueueChannel commandQueue)
+    public OrdbokModule(RequestQueueChannel commandQueue)
     {
         _requestQueue = commandQueue;
     }
 
     [BaseCommandCheck]
-    [Command("bm-legacy")]
-    ////[Aliases("nb")]
-    [AllowedProcessors(typeof(TextCommandProcessor))]
-    public Task OrdbokSearchBokmal(CommandContext ctx, [RemainingText] string query)
+    [Command("bm")]
+    [Description("Search Bokmål dictionary")]
+    public Task OrbokSearchBokmal(
+        SlashCommandContext ctx,
+        [Parameter("query")] [Description("What to search for")] [SlashAutoCompleteProvider<OrdbokBmSuggestProvider>]
+        string query)
+    {
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
+        {
+            Dictionary = OrdbokDictionaryMap.Bokmal,
+            Query = query,
+            IsAutoComplete = true,
+        };
+
+        return _requestQueue.Writer.WriteAsync(searchOrdbokRequest).AsTask();
+    }
+
+    [BaseCommandCheck]
+    [Command("nn")]
+    [Description("Search Nynorsk dictionary")]
+    public Task OrdbokSearchNynorsk(
+        SlashCommandContext ctx,
+        [Parameter("query")] [Description("What to search for")] [SlashAutoCompleteProvider<OrdbokNnSuggestProvider>]
+        string query)
+    {
+        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
+        {
+            Dictionary = OrdbokDictionaryMap.Nynorsk,
+            Query = query,
+            IsAutoComplete = true,
+        };
+
+        return _requestQueue.Writer.WriteAsync(searchOrdbokRequest).AsTask();
+    }
+
+    [BaseCommandCheck]
+    [Command("bm-free-text")]
+    [Description("Search Bokmål dictionary (free text)")]
+    public Task OrdbokSearchBokmalFreeText(
+        SlashCommandContext ctx,
+        [Parameter("query")] [Description("What to search for")]
+        string query)
     {
         var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
@@ -35,9 +73,12 @@ public class OrdbokLegacyLegacy
     }
 
     [BaseCommandCheck]
-    [Command("nn-legacy")]
-    [AllowedProcessors(typeof(TextCommandProcessor))]
-    public Task OrdbokSearchNynorsk(CommandContext ctx, [RemainingText] string query)
+    [Command("nn-free-text")]
+    [Description("Search Nynorsk dictionary (free text)")]
+    public Task OrdbokSearchNynorskFreeText(
+        SlashCommandContext ctx,
+        [Parameter("query")] [Description("What to search for")]
+        string query)
     {
         var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
         {
@@ -46,45 +87,5 @@ public class OrdbokLegacyLegacy
         };
 
         return _requestQueue.Writer.WriteAsync(searchOrdbokRequest).AsTask();
-    }
-
-    [BaseCommandCheck]
-    [Command("bm-t-legacy")]
-    [AllowedProcessors(typeof(TextCommandProcessor))]
-    public Task OrdbokSearchBokmalDebugTemplate(CommandContext ctx, [RemainingText] string query)
-    {
-        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
-        {
-            Dictionary = OrdbokDictionaryMap.Bokmal,
-            Query = query,
-            AttachTemplate = true,
-        };
-
-        return _requestQueue.Writer.WriteAsync(searchOrdbokRequest).AsTask();
-    }
-
-    [BaseCommandCheck]
-    [Command("nn-t-legacy")]
-    [AllowedProcessors(typeof(TextCommandProcessor))]
-    public Task OrdbokSearchNynorskDebugTemplate(CommandContext ctx, [RemainingText] string query)
-    {
-        var searchOrdbokRequest = new SearchOrdbokQuery(ctx)
-        {
-            Dictionary = OrdbokDictionaryMap.Nynorsk,
-            Query = query,
-            AttachTemplate = true,
-        };
-
-        return _requestQueue.Writer.WriteAsync(searchOrdbokRequest).AsTask();
-    }
-
-    [BaseCommandCheck]
-    [Command("gibb")]
-    [AllowedProcessors(typeof(TextCommandProcessor))]
-    public Task Gibb(CommandContext ctx)
-    {
-        var gibbCommand = new GibbCommand(ctx);
-
-        return _requestQueue.Writer.WriteAsync(gibbCommand).AsTask();
     }
 }

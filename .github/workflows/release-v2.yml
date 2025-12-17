@@ -6,6 +6,10 @@ on:
       imageTag:
         description: 'Docker image tag (default: latest for main or branch name for other branches)'
         required: false
+      skipGhRelease:
+        description: 'Skip creating a GitHub release'
+        required: false
+        default: false
 
 env:
   HOST_GATEWAY_IP: "172.17.0.1"
@@ -179,7 +183,7 @@ jobs:
   
   create-release:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' && !inputs.skipGhRelease }}
     permissions:
       packages: read
       contents: read
