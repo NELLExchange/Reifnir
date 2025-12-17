@@ -183,7 +183,7 @@ jobs:
   
   create-release:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' && !inputs.skipGhRelease }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.skipGhRelease != 'true' }}
     permissions:
       packages: read
       contents: read
