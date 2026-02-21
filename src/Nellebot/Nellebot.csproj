@@ -14,9 +14,9 @@
         <Version>1.2.3-a.4</Version>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02556" />
-        <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02556" />
-        <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02556" />
+        <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02572" />
+        <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02572" />
+        <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02572" />
         <PackageReference Include="MediatR" Version="[12.5.0,13)" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.3" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="10.0.3" />
