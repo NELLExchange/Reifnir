@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nellebot.Common/Nellebot.Common.csproj" />
+    <Project Path="src/Nellebot.Data.Migrations/Nellebot.Data.Migrations.csproj" />
+    <Project Path="src/Nellebot.Data/Nellebot.Data.csproj" />
+    <Project Path="src/Nellebot/Nellebot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nellebot.Tests/Nellebot.Tests.csproj" />
+  </Folder>
+  <Project Path="docker/docker.dcproj" Type="C#">
+    <BuildType Project="Debug" />
+  </Project>
+</Solution>

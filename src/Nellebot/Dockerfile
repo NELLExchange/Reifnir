@@ -12,7 +12,7 @@ COPY ["src/Nellebot/Nellebot.csproj", "Nellebot/"]
 COPY ["src/Nellebot.Common/Nellebot.Common.csproj", "Nellebot.Common/"]
 COPY ["src/Nellebot.Data/Nellebot.Data.csproj", "Nellebot.Data/"]
 RUN dotnet restore "./Nellebot/Nellebot.csproj"
-COPY ["Nellebot.sln", "."]
+COPY ["Nellebot.slnx", "."]
 COPY ["stylecop.json", "."]
 COPY [".editorconfig", "."]
 COPY src .

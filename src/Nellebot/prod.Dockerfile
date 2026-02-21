@@ -10,7 +10,7 @@ COPY [".config/dotnet-tools.json", ".config/"]
 RUN dotnet restore "./Nellebot/Nellebot.csproj"
 RUN dotnet restore "./Nellebot.Data.Migrations/Nellebot.Data.Migrations.csproj"
 RUN dotnet tool restore
-COPY ["Nellebot.sln", "."]
+COPY ["Nellebot.slnx", "."]
 COPY ["stylecop.json", "."]
 COPY [".editorconfig", "."]
 COPY ["scripts/nellebot-backup-db.sh", "."] 
