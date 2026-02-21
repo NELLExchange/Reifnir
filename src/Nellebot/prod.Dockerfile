@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
@@ -10,7 +10,7 @@ COPY [".config/dotnet-tools.json", ".config/"]
 RUN dotnet restore "./Nellebot/Nellebot.csproj"
 RUN dotnet restore "./Nellebot.Data.Migrations/Nellebot.Data.Migrations.csproj"
 RUN dotnet tool restore
-COPY ["Nellebot.sln", "."]
+COPY ["Nellebot.slnx", "."]
 COPY ["stylecop.json", "."]
 COPY [".editorconfig", "."]
 COPY ["scripts/nellebot-backup-db.sh", "."] 
@@ -27,7 +27,7 @@ ARG BUILD_CONFIGURATION=Release
 RUN dotnet ef migrations script --no-build --configuration $BUILD_CONFIGURATION --idempotent -p Nellebot.Data.Migrations -o /output/migrations/database_migration.sql
 COPY --from=build /src/nellebot-backup-db.sh /output/migrations/
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 RUN mkdir /keydata && \
     chown $APP_UID:$APP_UID /keydata
 WORKDIR /app

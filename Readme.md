@@ -9,7 +9,7 @@ Source code for the discord bot Reifnir, made for the Norwegian-English Language
 
 ### Requirements
 
--   [.NET 8 SDK](https://dotnet.microsoft.com/download/visual-studio-sdks)
+-   [.NET 10 SDK](https://dotnet.microsoft.com/download/visual-studio-sdks)
 -   [Visual Studio](https://visualstudio.microsoft.com/) (or any other preferred editor + dotnet command line tool)
 -   [PostgreSQL 15+](https://www.postgresql.org/)
 
@@ -18,8 +18,8 @@ Source code for the discord bot Reifnir, made for the Norwegian-English Language
 Configure the bot token and connection string in user secrets:
 
 ```
-"Nellebot:BotToken": "TOKEN_GOES_HERE"​
-"Nellebot:ConnectionString": "CONN_STRING_GOES_HERE"​
+"Nellebot:BotToken": "TOKEN_GOES_HERE"
+"Nellebot:ConnectionString": "CONN_STRING_GOES_HERE"
 ```
 
 or as environment variables:
@@ -57,9 +57,9 @@ Optionally, use `Compose \W PgAdmin` profile to include a PgAdmin container.
 
 #### Nellebot project only
 
-`docker build -t kattbot -f docker/Dockerfile .`
+`docker build -t nellebot -f docker/Dockerfile .`
 
-`docker run -d --name kattbot kattbot`
+`docker run -d --name nellebot nellebot`
 
 #### Nellebot and PostgreSQL
 
