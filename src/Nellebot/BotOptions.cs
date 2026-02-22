@@ -60,8 +60,6 @@ public class BotOptions
 
     public ulong[] BeginnerActivatingRoleIds { get; init; } = [];
 
-    public ulong GhostRoleId { get; init; }
-
     public ulong QuarantineRoleId { get; init; }
 
     public ulong QuarantineChannelId { get; init; }

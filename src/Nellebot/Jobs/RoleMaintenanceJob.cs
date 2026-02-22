@@ -56,8 +56,6 @@ public class RoleMaintenanceJob : IJob
 
             await MaintainBeginnerRoles(guild, allMembers, quarantineRoleId, cancellationToken);
 
-            await MaintainGhostRoles(guild, allMembers, cancellationToken);
-
             _discordLogger.LogOperationMessage($"Job finished: {Key}");
         }
         catch (Exception ex)
@@ -204,69 +202,6 @@ public class RoleMaintenanceJob : IJob
         bool HasQuarantineRole(DiscordMember m)
         {
             return m.Roles.Any(r => r.Id == quarantineRoleId);
-        }
-    }
-
-    private async Task MaintainGhostRoles(
-        DiscordGuild guild,
-        List<DiscordMember> allMembers,
-        CancellationToken cancellationToken)
-    {
-        ulong ghostRoleId = _options.GhostRoleId;
-        DiscordRole ghostRole = guild.Roles[ghostRoleId]
-                                ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
-
-        await AddMissingGhostRoles(allMembers, ghostRole, cancellationToken);
-
-        await RemoveUnneededGhostRoles(allMembers, ghostRole, cancellationToken);
-    }
-
-    private async Task AddMissingGhostRoles(
-        List<DiscordMember> allMembers,
-        DiscordRole ghostRole,
-        CancellationToken cancellationToken)
-    {
-        List<DiscordMember> ghostRoleCandidates = allMembers
-            .Where(m => !m.Roles.Any())
-            .ToList();
-
-        if (ghostRoleCandidates.Count != 0)
-        {
-            int totalCount = ghostRoleCandidates.Count;
-
-            _discordLogger.LogOperationMessage(
-                $"Found {ghostRoleCandidates.Count} users which are missing the Ghost role.");
-
-            int successCount = await ExecuteRoleChangeWithRetry(
-                ghostRoleCandidates,
-                m => m.GrantRoleAsync(ghostRole),
-                cancellationToken);
-
-            _discordLogger.LogOperationMessage($"Done adding Ghost role for {successCount}/{totalCount} users.");
-        }
-    }
-
-    private async Task RemoveUnneededGhostRoles(
-        List<DiscordMember> allMembers,
-        DiscordRole ghostRole,
-        CancellationToken cancellationToken)
-    {
-        List<DiscordMember> ghostRoleCandidates = allMembers
-            .Where(m => m.Roles.Any(r => r.Id == ghostRole.Id) && m.Roles.Count() > 1)
-            .ToList();
-
-        if (ghostRoleCandidates.Count != 0)
-        {
-            int totalCount = ghostRoleCandidates.Count;
-
-            _discordLogger.LogOperationMessage($"Found {ghostRoleCandidates.Count} users with unneeded Ghost role.");
-
-            int successCount = await ExecuteRoleChangeWithRetry(
-                ghostRoleCandidates,
-                m => m.RevokeRoleAsync(ghostRole),
-                cancellationToken);
-
-            _discordLogger.LogOperationMessage($"Done removing Ghost role for {successCount}/{totalCount} users.");
         }
     }
 

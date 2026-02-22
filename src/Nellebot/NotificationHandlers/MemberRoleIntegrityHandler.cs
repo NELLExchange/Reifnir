@@ -71,8 +71,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         await MaintainMemberRole(guild, member, quarantineRoleId);
 
         await MaintainBeginnerRole(guild, member, quarantineRoleId);
-
-        await MaintainGhostRole(guild, member);
     }
 
     private async Task MaintainMemberRole(
@@ -124,33 +122,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         else if (userHasActivatableRole && !userIsEligibleForActivatableRole)
         {
             await member.RevokeRoleAsync(activatableRole);
-        }
-    }
-
-    /// <summary>
-    /// Ensures that the ghost role is added if the user has no roles,
-    /// and removed if the user has any other roles
-    /// </summary>
-    private async Task MaintainGhostRole(DiscordGuild guild, DiscordMember member)
-    {
-        ulong ghostRoleId = _options.GhostRoleId;
-        DiscordRole ghostRole = guild.Roles[ghostRoleId]
-                                ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
-
-        bool userHasNoRoles = !member.Roles.Any();
-
-        if (userHasNoRoles)
-        {
-            await member.GrantRoleAsync(ghostRole);
-            return;
-        }
-
-        bool userHasGhostRole = member.Roles.Any(r => r.Id == ghostRoleId);
-        bool userHasAnyOtherRole = member.Roles.Any(r => r.Id != ghostRoleId);
-
-        if (userHasGhostRole && userHasAnyOtherRole)
-        {
-            await member.RevokeRoleAsync(ghostRole);
         }
     }
 
