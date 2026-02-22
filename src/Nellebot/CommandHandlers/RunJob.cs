@@ -34,7 +34,6 @@ public class RunJobCommandHandler : IRequestHandler<RunJobCommand>
     [
         RoleMaintenanceJob.Key,
         ModmailCleanupJob.Key,
-        MigrateResourcesJob.Key,
     ];
 
     private readonly ISchedulerFactory _schedulerFactory;
