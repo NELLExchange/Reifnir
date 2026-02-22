@@ -12,22 +12,24 @@ using Nellebot.Utils;
 
 namespace Nellebot.CommandHandlers;
 
-public record ValhallKickUserCommand(CommandContext Ctx, DiscordMember Member, string? Reason)
+public record ValhallBanUserCommand(CommandContext Ctx, DiscordMember Member, string? Reason)
     : BotCommandCommand(Ctx);
 
-public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
+public class ValhallBanUserHandler : IRequestHandler<ValhallBanUserCommand>
 {
-    private readonly InteractivityExtension _interactivityExtension;
     private const string ModalTextInputId = "modal-text-input";
+    private const int DeleteMessagesPeriodInDays = 7; // Max number of days allowed by API
+
+    private readonly InteractivityExtension _interactivityExtension;
     private readonly BotOptions _options;
 
-    public ValhallKickUserHandler(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
+    public ValhallBanUserHandler(IOptions<BotOptions> options, InteractivityExtension interactivityExtension)
     {
         _interactivityExtension = interactivityExtension;
         _options = options.Value;
     }
 
-    public async Task Handle(ValhallKickUserCommand request, CancellationToken cancellationToken)
+    public async Task Handle(ValhallBanUserCommand request, CancellationToken cancellationToken)
     {
         CommandContext ctx = request.Ctx;
         DiscordMember currentMember = ctx.Member ?? throw new Exception("Member is null");
@@ -41,12 +43,12 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 
         TimeSpan guildAge = DateTimeOffset.UtcNow - targetMember.JoinedAt;
 
-        int maxAgeHours = _options.ValhallKickMaxMemberAgeInHours;
+        int maxAgeHours = _options.ValhallBanMaxMemberAgeInHours;
 
         if (guildAge.TotalHours >= maxAgeHours)
         {
             var content =
-                $"You cannot vkick this user. They have been a member of the server for more than {maxAgeHours} hours.";
+                $"You cannot vban this user. They have been a member of the server for more than {maxAgeHours} hours.";
 
             await ctx.TryRespondEphemeral(content);
 
@@ -54,7 +56,7 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
         }
 
         DiscordInteraction? modalInteraction = null;
-        string? kickReason = request.Reason;
+        string? banReason = request.Reason;
 
         if (ctx is SlashCommandContext slashCtx && request.Reason == null)
         {
@@ -62,19 +64,19 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 
             modalInteraction = modalSubmissionResult.Interaction;
 
-            modalSubmissionResult.TryGetValue(ModalTextInputId, out kickReason);
+            modalSubmissionResult.TryGetValue(ModalTextInputId, out banReason);
 
             await modalInteraction.DeferAsync(ephemeral: true);
         }
 
-        kickReason = kickReason.NullOrWhiteSpaceTo("/shrug");
+        banReason = banReason.NullOrWhiteSpaceTo("/shrug");
 
         var onBehalfOfReason =
-            $"Kicked on behalf of {currentMember.DisplayName}. Reason: {kickReason}";
+            $"Banned on behalf of {currentMember.DisplayName}. Reason: {banReason}";
 
-        await targetMember.RemoveAsync(onBehalfOfReason);
+        await targetMember.BanAsync(TimeSpan.FromDays(DeleteMessagesPeriodInDays), onBehalfOfReason);
 
-        await ctx.TryRespondEphemeral("User vkicked successfully", modalInteraction);
+        await ctx.TryRespondEphemeral("User vbanned successfully", modalInteraction);
     }
 
     private async Task<ModalSubmittedEventArgs> ShowGetReasonModal(SlashCommandContext ctx)
@@ -83,11 +85,11 @@ public class ValhallKickUserHandler : IRequestHandler<ValhallKickUserCommand>
 
         DiscordModalBuilder interactionBuilder = new DiscordModalBuilder()
             .WithCustomId(modalId)
-            .WithTitle("Valhall kick user")
+            .WithTitle("Valhall ban user")
             .AddTextInput(
                 new DiscordTextInputComponent(
                     ModalTextInputId,
-                    "Write a reason for kicking",
+                    "Write a reason for banning",
                     string.Empty,
                     required: true,
                     DiscordTextInputStyle.Short,

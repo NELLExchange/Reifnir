@@ -101,8 +101,8 @@ public class HelpModule
 
         string commandPrefix = _options.CommandPrefix;
 
-        sb.AppendLine($"`{commandPrefix}vkick [user] [reason]`");
-        sb.AppendLine("`   Kick a recently joined user (< 48hrs ago).`");
+        sb.AppendLine($"`{commandPrefix}vban [user] [reason]`");
+        sb.AppendLine("`   Ban a recently joined user (< 48hrs ago) and delete their messages.`");
         sb.AppendLine();
 
         sb.AppendLine($"`{commandPrefix}quarantine [user] [reason]`");

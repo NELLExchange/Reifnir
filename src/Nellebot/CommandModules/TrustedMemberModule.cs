@@ -28,21 +28,21 @@ public class TrustedMemberModule
 
     [BaseCommandCheck]
     [RequireTrustedMember]
-    [Command("vkick")]
-    [Description("Valhall kick user")]
-    public async Task ValhallKick(CommandContext ctx, DiscordMember member, [RemainingText] string reason)
+    [Command("vban")]
+    [Description("Valhall ban user")]
+    public async Task ValhallBan(CommandContext ctx, DiscordMember member, [RemainingText] string reason)
     {
-        await _commandQueue.Writer.WriteAsync(new ValhallKickUserCommand(ctx, member, reason));
+        await _commandQueue.Writer.WriteAsync(new ValhallBanUserCommand(ctx, member, reason));
     }
 
     [BaseCommandCheck]
     [RequireTrustedMember]
-    [Command("VKick user")]
-    [Description("Valhall kick user")]
+    [Command("VBan user")]
+    [Description("Valhall ban user")]
     [SlashCommandTypes(DiscordApplicationCommandType.UserContextMenu)]
-    public async Task ValhallKickMenu(SlashCommandContext ctx, DiscordMember member)
+    public async Task ValhallBanMenu(SlashCommandContext ctx, DiscordMember member)
     {
-        await _commandQueue.Writer.WriteAsync(new ValhallKickUserCommand(ctx, member, Reason: null));
+        await _commandQueue.Writer.WriteAsync(new ValhallBanUserCommand(ctx, member, Reason: null));
     }
 
     [BaseCommandCheck]
