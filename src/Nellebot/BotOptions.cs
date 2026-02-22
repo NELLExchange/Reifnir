@@ -78,8 +78,13 @@ public class BotOptions
     public int ValhallBanMaxMemberAgeInDays { get; init; }
 
     /// <summary>
-    ///     Gets maximum account age for quarantine.
+    ///     Gets maximum account age allowed for quarantine command.
     ///     Admins and moderators can bypass.
     /// </summary>
     public int QuarantineMaxMemberAgeInHours { get; init; }
+
+    /// <summary>
+    ///     Gets maximum account age for automatic quarantine.
+    /// </summary>
+    public int SuspiciousAccountAgeThresholdDays { get; init; }
 }
