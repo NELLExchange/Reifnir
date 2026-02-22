@@ -85,4 +85,9 @@ public class BotOptions
     ///     Gets maximum account age for automatic quarantine.
     /// </summary>
     public int SuspiciousAccountAgeThresholdDays { get; init; }
+
+    /// <summary>
+    ///     Gets minimum member age for quarantining for lack of roles i.e. user is a ghost.
+    /// </summary>
+    public int QuarantineGhostMinMemberAgeInHours { get; init; }
 }

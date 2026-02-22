@@ -48,7 +48,7 @@ public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNo
 
         if (memberAccountAge < TimeSpan.FromDays(suspiciousAccountAgeThresholdDays))
         {
-            var quarantineReason = $"User account is less than {suspiciousAccountAgeThresholdDays} days old.";
+            var quarantineReason = $"User account is less than {suspiciousAccountAgeThresholdDays} days old";
             await _quarantineService.QuarantineMember(member, botMember, quarantineReason);
         }
         else
