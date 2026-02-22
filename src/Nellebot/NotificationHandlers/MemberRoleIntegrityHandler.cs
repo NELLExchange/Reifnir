@@ -132,10 +132,9 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - member.JoinedAt;
         DiscordRole? addedSpammerRole = addedRoles.FirstOrDefault(r => r.Id == spammerRoleId);
         bool hasChosenSpammerRole = addedSpammerRole is not null;
-        const int maxJoinAgeForAutomatedQuarantineDays = 7;
 
         bool shouldQuarantineSpammer = hasChosenSpammerRole
-                                       && memberJoinedAgo < TimeSpan.FromDays(maxJoinAgeForAutomatedQuarantineDays);
+                                       && memberJoinedAgo < TimeSpan.FromDays(_options.QuarantineMaxMemberAgeInDays);
 
         if (!shouldQuarantineSpammer) return;
 
