@@ -102,11 +102,11 @@ public class HelpModule
         string commandPrefix = _options.CommandPrefix;
 
         sb.AppendLine($"`{commandPrefix}vban [user] [reason]`");
-        sb.AppendLine("`   Ban a recently joined user (< 48hrs ago) and delete their messages.`");
+        sb.AppendLine($"`   Ban a recently joined user (< {_options.ValhallBanMaxMemberAgeInDays} days ago) and delete their messages.`");
         sb.AppendLine();
 
         sb.AppendLine($"`{commandPrefix}quarantine [user] [reason]`");
-        sb.AppendLine("`   Quarantine a recently joined user (< 48hrs ago).`");
+        sb.AppendLine($"`   Quarantine a recently joined user (< {_options.QuarantineMaxMemberAgeInDays} days ago).`");
         sb.AppendLine();
 
         sb.AppendLine($"`{commandPrefix}approve [user]`");
