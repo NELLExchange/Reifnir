@@ -81,7 +81,7 @@ public class BotOptions
     ///     Gets maximum account age allowed for quarantine command.
     ///     Admins and moderators can bypass.
     /// </summary>
-    public int QuarantineMaxMemberAgeInHours { get; init; }
+    public int QuarantineMaxMemberAgeInDays { get; init; }
 
     /// <summary>
     ///     Gets maximum account age for automatic quarantine.
