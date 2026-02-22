@@ -75,7 +75,7 @@ public class BotOptions
 
     public int ModmailTicketInactiveThresholdInHours { get; init; }
 
-    public int ValhallBanMaxMemberAgeInHours { get; init; }
+    public int ValhallBanMaxMemberAgeInDays { get; init; }
 
     /// <summary>
     ///     Gets maximum account age for quarantine.

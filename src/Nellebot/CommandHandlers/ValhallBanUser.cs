@@ -43,12 +43,12 @@ public class ValhallBanUserHandler : IRequestHandler<ValhallBanUserCommand>
 
         TimeSpan guildAge = DateTimeOffset.UtcNow - targetMember.JoinedAt;
 
-        int maxAgeHours = _options.ValhallBanMaxMemberAgeInHours;
+        int maxAgeDays = _options.ValhallBanMaxMemberAgeInDays;
 
-        if (guildAge.TotalHours >= maxAgeHours)
+        if (guildAge.TotalDays >= maxAgeDays)
         {
             var content =
-                $"You cannot vban this user. They have been a member of the server for more than {maxAgeHours} hours.";
+                $"You cannot vban this user. They have been a member of the server for more than {maxAgeDays} days.";
 
             await ctx.TryRespondEphemeral(content);
 
