@@ -111,7 +111,7 @@ public class RoleMaintenanceJob : IJob
         bool MemberAgeOverThreshold(DiscordMember m)
         {
             TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - m.JoinedAt;
-            return memberJoinedAgo > TimeSpan.FromDays(_options.QuarantineGhostMinMemberAgeInHours);
+            return memberJoinedAgo > TimeSpan.FromHours(_options.QuarantineGhostMinMemberAgeInHours);
         }
     }
 
