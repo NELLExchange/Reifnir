@@ -61,7 +61,7 @@ public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNo
             // If the member is null for some reason, approve them anyway
             if (updatedMember is not null)
             {
-                bool memberIsQuarantined = member.Roles.Any(r => r.Id == _botOptions.QuarantineRoleId);
+                bool memberIsQuarantined = updatedMember.Roles.Any(r => r.Id == _botOptions.QuarantineRoleId);
 
                 if (memberIsQuarantined)
                 {
