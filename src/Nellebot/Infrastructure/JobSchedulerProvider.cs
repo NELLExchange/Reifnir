@@ -39,6 +39,19 @@ public static class JobSchedulerProvider
                     j.WithIdentity(ModmailCleanupJob.Key)
                         .WithDescription("Close inactive modmail tickets");
                 });
+
+            config.ScheduleJob<InsideGoodbyeJob>(
+                t =>
+                {
+                    t.ForJob(InsideGoodbyeJob.Key)
+                        .WithSimpleSchedule(s => s.WithIntervalInMinutes(20).RepeatForever())
+                        .WithDescription("Run every 20 minutes");
+                },
+                j =>
+                {
+                    j.WithIdentity(InsideGoodbyeJob.Key)
+                        .WithDescription("Send fake goodbye message");
+                });
         });
 
         services.AddQuartzHostedService(opts =>

@@ -70,4 +70,13 @@ public class MessageRefRepository
 
         return true;
     }
+
+    public async Task<List<ulong>> GetDistinctUserIdsByChannelAfterDateTime(ulong channelId, DateTime afterDateTime)
+    {
+        return await _dbContext.MessageRefs
+            .Where(mr => mr.ChannelId == channelId && mr.DateTime >= afterDateTime)
+            .Select(mr => mr.UserId)
+            .Distinct()
+            .ToListAsync();
+    }
 }
