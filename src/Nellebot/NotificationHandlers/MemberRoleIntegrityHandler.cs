@@ -71,8 +71,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         await MaintainMemberRole(guild, member, quarantineRoleId);
 
         await MaintainBeginnerRole(guild, member, quarantineRoleId);
-
-        await MaintainGhostRole(guild, member);
     }
 
     private async Task MaintainMemberRole(
@@ -127,33 +125,6 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         }
     }
 
-    /// <summary>
-    /// Ensures that the ghost role is added if the user has no roles,
-    /// and removed if the user has any other roles
-    /// </summary>
-    private async Task MaintainGhostRole(DiscordGuild guild, DiscordMember member)
-    {
-        ulong ghostRoleId = _options.GhostRoleId;
-        DiscordRole ghostRole = guild.Roles[ghostRoleId]
-                                ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
-
-        bool userHasNoRoles = !member.Roles.Any();
-
-        if (userHasNoRoles)
-        {
-            await member.GrantRoleAsync(ghostRole);
-            return;
-        }
-
-        bool userHasGhostRole = member.Roles.Any(r => r.Id == ghostRoleId);
-        bool userHasAnyOtherRole = member.Roles.Any(r => r.Id != ghostRoleId);
-
-        if (userHasGhostRole && userHasAnyOtherRole)
-        {
-            await member.RevokeRoleAsync(ghostRole);
-        }
-    }
-
     private async Task QuarantineIfSpammer(DiscordMember member, List<DiscordRole> addedRoles)
     {
         ulong spammerRoleId = _options.SpammerRoleId;
@@ -161,10 +132,9 @@ public class MemberRoleIntegrityHandler : INotificationHandler<GuildMemberUpdate
         TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - member.JoinedAt;
         DiscordRole? addedSpammerRole = addedRoles.FirstOrDefault(r => r.Id == spammerRoleId);
         bool hasChosenSpammerRole = addedSpammerRole is not null;
-        const int maxJoinAgeForAutomatedQuarantineDays = 7;
 
         bool shouldQuarantineSpammer = hasChosenSpammerRole
-                                       && memberJoinedAgo < TimeSpan.FromDays(maxJoinAgeForAutomatedQuarantineDays);
+                                       && memberJoinedAgo < TimeSpan.FromDays(_options.QuarantineMaxMemberAgeInDays);
 
         if (!shouldQuarantineSpammer) return;
 

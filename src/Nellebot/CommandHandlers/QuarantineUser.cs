@@ -53,16 +53,16 @@ public class QuarantineUserHandler : IRequestHandler<QuarantineUserCommand>
 
         TimeSpan guildAge = DateTimeOffset.UtcNow - targetMember.JoinedAt;
 
-        int maxAgeHours = _options.QuarantineMaxMemberAgeInHours;
+        int maxAgeDays = _options.QuarantineMaxMemberAgeInDays;
 
         AppDiscordMember appCurrentMember = DiscordMemberMapper.Map(currentMember);
 
         bool canBypassAgeRestriction = _authService.IsAdminOrMod(appCurrentMember);
 
-        if (!canBypassAgeRestriction && guildAge.TotalHours >= maxAgeHours)
+        if (!canBypassAgeRestriction && guildAge.TotalDays >= maxAgeDays)
         {
             var content =
-                $"You cannot quarantine this user. They have been a member of the server for more than {maxAgeHours} hours.";
+                $"You cannot quarantine this user. They have been a member of the server for more than {maxAgeDays} days.";
 
             await ctx.TryRespondEphemeral(content);
 

@@ -16,7 +16,6 @@ namespace Nellebot.NotificationHandlers;
 public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNotification>
 {
     private const int ApproveDelayDurationSeconds = 10;
-    private const int SuspiciousAccountAgeThresholdDays = 2;
 
     private readonly DiscordResolver _discordResolver;
     private readonly EventQueueChannel _eventQueueChannel;
@@ -45,9 +44,11 @@ public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNo
 
         DiscordMember botMember = _discordResolver.GetBotMember();
 
-        if (memberAccountAge < TimeSpan.FromDays(SuspiciousAccountAgeThresholdDays))
+        var suspiciousAccountAgeThresholdDays = _botOptions.SuspiciousAccountAgeThresholdDays;
+
+        if (memberAccountAge < TimeSpan.FromDays(suspiciousAccountAgeThresholdDays))
         {
-            var quarantineReason = $"User account is less than {SuspiciousAccountAgeThresholdDays} days old.";
+            var quarantineReason = $"User account is less than {suspiciousAccountAgeThresholdDays} days old";
             await _quarantineService.QuarantineMember(member, botMember, quarantineReason);
         }
         else
@@ -60,7 +61,7 @@ public class MemberVerificationHandler : INotificationHandler<GuildMemberAddedNo
             // If the member is null for some reason, approve them anyway
             if (updatedMember is not null)
             {
-                bool memberIsQuarantined = member.Roles.Any(r => r.Id == _botOptions.QuarantineRoleId);
+                bool memberIsQuarantined = updatedMember.Roles.Any(r => r.Id == _botOptions.QuarantineRoleId);
 
                 if (memberIsQuarantined)
                 {

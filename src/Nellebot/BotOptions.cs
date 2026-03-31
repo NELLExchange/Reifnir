@@ -60,8 +60,6 @@ public class BotOptions
 
     public ulong[] BeginnerActivatingRoleIds { get; init; } = [];
 
-    public ulong GhostRoleId { get; init; }
-
     public ulong QuarantineRoleId { get; init; }
 
     public ulong QuarantineChannelId { get; init; }
@@ -75,11 +73,21 @@ public class BotOptions
 
     public int ModmailTicketInactiveThresholdInHours { get; init; }
 
-    public int ValhallKickMaxMemberAgeInHours { get; init; }
+    public int ValhallBanMaxMemberAgeInDays { get; init; }
 
     /// <summary>
-    ///     Gets maximum account age for quarantine.
+    ///     Gets maximum account age allowed for quarantine command.
     ///     Admins and moderators can bypass.
     /// </summary>
-    public int QuarantineMaxMemberAgeInHours { get; init; }
+    public int QuarantineMaxMemberAgeInDays { get; init; }
+
+    /// <summary>
+    ///     Gets maximum account age for automatic quarantine.
+    /// </summary>
+    public int SuspiciousAccountAgeThresholdDays { get; init; }
+
+    /// <summary>
+    ///     Gets minimum member age for quarantining for lack of roles i.e. user is a ghost.
+    /// </summary>
+    public int QuarantineGhostMinMemberAgeInHours { get; init; }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Options;
+using Nellebot.Services;
 using Nellebot.Services.Loggers;
 using Nellebot.Utils;
 using Quartz;
@@ -20,16 +21,19 @@ public class RoleMaintenanceJob : IJob
     private readonly IDiscordErrorLogger _discordErrorLogger;
     private readonly DiscordLogger _discordLogger;
     private readonly BotOptions _options;
+    private readonly QuarantineService _quarantineService;
 
     public RoleMaintenanceJob(
         IOptions<BotOptions> options,
         DiscordClient client,
         DiscordLogger discordLogger,
-        IDiscordErrorLogger discordErrorLogger)
+        IDiscordErrorLogger discordErrorLogger,
+        QuarantineService quarantineService)
     {
         _client = client;
         _discordLogger = discordLogger;
         _discordErrorLogger = discordErrorLogger;
+        _quarantineService = quarantineService;
         _options = options.Value;
     }
 
@@ -52,11 +56,15 @@ public class RoleMaintenanceJob : IJob
 
             _discordLogger.LogOperationMessage($"Downloaded {allMembers.Count} guild members.");
 
+            List<ulong> quarantinedGhostUserIds =
+                await QuarantineGhosts(allMembers, guild.CurrentMember, cancellationToken);
+
+            // Exclude freshly quarantined users from remaining role maintenance since they had no roles
+            allMembers = allMembers.Where(x => quarantinedGhostUserIds.Contains(x.Id)).ToList();
+
             await MaintainMemberRoles(guild, allMembers, quarantineRoleId, cancellationToken);
 
             await MaintainBeginnerRoles(guild, allMembers, quarantineRoleId, cancellationToken);
-
-            await MaintainGhostRoles(guild, allMembers, cancellationToken);
 
             _discordLogger.LogOperationMessage($"Job finished: {Key}");
         }
@@ -64,6 +72,46 @@ public class RoleMaintenanceJob : IJob
         {
             _discordErrorLogger.LogError(ex, ex.Message);
             throw new JobExecutionException(ex);
+        }
+    }
+
+    private async Task<List<ulong>> QuarantineGhosts(
+        List<DiscordMember> allMembers,
+        DiscordMember currentMember,
+        CancellationToken cancellationToken)
+    {
+        List<DiscordMember> quarantineCandidates = allMembers
+            .Where(m => !m.Roles.Any() && MemberAgeOverThreshold(m))
+            .ToList();
+
+        if (quarantineCandidates.Count == 0)
+            return [];
+
+        List<ulong> quarantinedUserIds = [];
+
+        _discordLogger.LogOperationMessage(
+            $"Found {quarantineCandidates.Count} users which have had no roles for more than"
+            + $" {_options.QuarantineGhostMinMemberAgeInHours} hours and which need to be quarantined.");
+
+        foreach (DiscordMember quarantineCandidate in quarantineCandidates)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            await _quarantineService.QuarantineMember(
+                quarantineCandidate,
+                currentMember,
+                "Ghost (has no roles)");
+
+            quarantinedUserIds.Add(quarantineCandidate.Id);
+        }
+
+        return quarantinedUserIds;
+
+        bool MemberAgeOverThreshold(DiscordMember m)
+        {
+            TimeSpan memberJoinedAgo = DateTimeOffset.UtcNow - m.JoinedAt;
+            return memberJoinedAgo > TimeSpan.FromHours(_options.QuarantineGhostMinMemberAgeInHours);
         }
     }
 
@@ -204,69 +252,6 @@ public class RoleMaintenanceJob : IJob
         bool HasQuarantineRole(DiscordMember m)
         {
             return m.Roles.Any(r => r.Id == quarantineRoleId);
-        }
-    }
-
-    private async Task MaintainGhostRoles(
-        DiscordGuild guild,
-        List<DiscordMember> allMembers,
-        CancellationToken cancellationToken)
-    {
-        ulong ghostRoleId = _options.GhostRoleId;
-        DiscordRole ghostRole = guild.Roles[ghostRoleId]
-                                ?? throw new Exception($"Could not find ghost role with id {ghostRoleId}");
-
-        await AddMissingGhostRoles(allMembers, ghostRole, cancellationToken);
-
-        await RemoveUnneededGhostRoles(allMembers, ghostRole, cancellationToken);
-    }
-
-    private async Task AddMissingGhostRoles(
-        List<DiscordMember> allMembers,
-        DiscordRole ghostRole,
-        CancellationToken cancellationToken)
-    {
-        List<DiscordMember> ghostRoleCandidates = allMembers
-            .Where(m => !m.Roles.Any())
-            .ToList();
-
-        if (ghostRoleCandidates.Count != 0)
-        {
-            int totalCount = ghostRoleCandidates.Count;
-
-            _discordLogger.LogOperationMessage(
-                $"Found {ghostRoleCandidates.Count} users which are missing the Ghost role.");
-
-            int successCount = await ExecuteRoleChangeWithRetry(
-                ghostRoleCandidates,
-                m => m.GrantRoleAsync(ghostRole),
-                cancellationToken);
-
-            _discordLogger.LogOperationMessage($"Done adding Ghost role for {successCount}/{totalCount} users.");
-        }
-    }
-
-    private async Task RemoveUnneededGhostRoles(
-        List<DiscordMember> allMembers,
-        DiscordRole ghostRole,
-        CancellationToken cancellationToken)
-    {
-        List<DiscordMember> ghostRoleCandidates = allMembers
-            .Where(m => m.Roles.Any(r => r.Id == ghostRole.Id) && m.Roles.Count() > 1)
-            .ToList();
-
-        if (ghostRoleCandidates.Count != 0)
-        {
-            int totalCount = ghostRoleCandidates.Count;
-
-            _discordLogger.LogOperationMessage($"Found {ghostRoleCandidates.Count} users with unneeded Ghost role.");
-
-            int successCount = await ExecuteRoleChangeWithRetry(
-                ghostRoleCandidates,
-                m => m.RevokeRoleAsync(ghostRole),
-                cancellationToken);
-
-            _discordLogger.LogOperationMessage($"Done removing Ghost role for {successCount}/{totalCount} users.");
         }
     }
 
