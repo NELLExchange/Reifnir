@@ -67,15 +67,23 @@ public class InsideGoodbyeJob : IJob
 
             DateTime userSelectionCutOff = now.UtcDateTime - TimeSpan.FromHours(4);
 
-            List<ulong> userIds = await _messageRefRepo.GetDistinctUserIdsByChannelAfterDateTime(
+            List<ulong> recentUserIds = await _messageRefRepo.GetDistinctUserIdsByChannelAfterDateTime(
                 _options.GreetingsChannelId,
                 userSelectionCutOff);
 
-            if (userIds.Count == 0)
+            DiscordGuild guild = _discordResolver.ResolveGuild();
+            List<ulong> trustedUserIds = guild.Members.Values
+                .Where(m => m.Roles.Any(r => _options.TrustedRoleIds.Contains(r.Id)))
+                .Select(m => m.Id)
+                .ToList();
+
+            List<ulong> allCandidateIds = [..recentUserIds, ..trustedUserIds];
+
+            if (allCandidateIds.Count == 0)
                 return;
 
             var rng = new Random();
-            List<ulong> shuffled = userIds.OrderBy(_ => rng.Next()).ToList();
+            List<ulong> shuffled = allCandidateIds.OrderBy(_ => rng.Next()).ToList();
 
             DiscordMember? member = null;
             int attempts = Math.Min(MaxMemberResolutionAttempts, shuffled.Count);
@@ -91,6 +99,10 @@ public class InsideGoodbyeJob : IJob
 
             string message = await GetRandomGoodbyeMessage(member.DisplayName);
 
+            int jitterSeconds = rng.Next(300, 601);
+#if !DEBUG
+            await Task.Delay(TimeSpan.FromSeconds(jitterSeconds), context.CancellationToken);
+#endif
             _discordLogger.LogGreetingMessage(message);
 
             _discordLogger.LogOperationMessage($"Job finished: {Key}");
